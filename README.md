@@ -12,27 +12,36 @@ MulletBench is a TSDB benchmarking tool with a focus on edge-cloud hybrid deploy
     python3 -m pip install --user ansible
     ```
 
+    If you get a warning about PATH, you may need to add the mentioned directory to the PATH variable
+
 2. Clone the repository:
 
     ``` bash
     git clone https://github.com/pedropereira98/MulletBench
     ```
 
-The machine where the test is run needs passwordless SSH access to all the machines in the present in the test cluster.
+    The machine where the test is run needs passwordless SSH access to all the machines in the present in the test cluster.
+
+3. Install Ansible dependencies
+
+    ``` bash
+    cd ansible
+    ansible-galaxy install -r requirements.yml
+    ```
 
 ## Running a test
 
 To run a single test run without any automatic graph generation, run:
 
 ``` bash
-cd src/ansible
+cd ansible
 ansible-playbook playbook.yaml -i <path to test configuration> 
 ```
 
 To perform multiple runs with automatic graph generation and cleanup between runs, run:
 
 ``` bash
-cd src/test-scripts
+cd test-scripts
 ./run-test.sh -t <path to test configuration>
 
 ```
