@@ -1,0 +1,23 @@
+- name: Set latency with default to 0ms
+  ansible.builtin.set_fact:
+    latency: "{{ item.latency | default('0ms') }}"
+
+- name: Set latency_normal_distribution with default to 0ms
+  ansible.builtin.set_fact:
+    latency_normal_distribution: "{{ item.latency_normal_distribution | default('0ms') }}"
+
+- name: Set bandwidth with default to 20Gbps
+  ansible.builtin.set_fact:
+    bandwidth: "{{ item.bandwidth | default('20Gbps') }}"
+
+- name: Set reordering_rate with default to 0%
+  ansible.builtin.set_fact:
+    reordering_rate: "{{ item.reordering_rate | default('0%') }}"
+
+- name: Apply settings for each host
+  ansible.builtin.shell:
+    "tcset mulletbench-{{ inventory_hostname }} --direction incoming --docker --delay {{ latency }} --delay-distro {{ latency_normal_distribution }} --reordering {{ reordering_rate }} --rate {{ bandwidth }} --network {{ hostvars[item.target]['ansible_host'] }}/32 --add"
+  become: yes
+  register: apply_settings
+  throttle: 1
+  failed_when: "'a shaping rule for the same network/port already exist' not in apply_settings.stderr and apply_settings.rc != 0"

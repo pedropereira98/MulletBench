@@ -1,0 +1,46 @@
+version: '3'
+services:
+  influxdb:
+    container_name: influx-{{ inventory_hostname }}
+    image: influxdb:{{ influx_version }}-alpine #should influxdb version be fixed?
+    volumes:
+      # Mount for influxdb data directory and configuration
+      - ./data:/var/lib/influxdb2:rw
+    environment:
+      # TODO make env vars like
+      # - DOCKER_INFLUXDB_INIT_PASSWORD=$INFLUXDB_PASSWORD
+      - DOCKER_INFLUXDB_INIT_MODE=setup #automated setup mode
+      - DOCKER_INFLUXDB_INIT_USERNAME={{ influx_username }}
+      - DOCKER_INFLUXDB_INIT_PASSWORD={{ influx_password }}
+      - DOCKER_INFLUXDB_INIT_ORG={{ influx_org }}
+      - DOCKER_INFLUXDB_INIT_BUCKET={{ influx_bucket }}
+      # - INFLUXD_CONFIG_PATH=/etc/influxdb2/config.yml
+      # - DOCKER_INFLUXDB_INIT_RETENTION=1w # example retention period for initial bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influx_token }}
+      #- INFLUXD_STORAGE_WAL_FSYNC_DELAY=15ms #example envvar for influxdb config
+    ports:
+      - "8086:8086"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50' #number of cores a container can use
+          memory: 200M #amount of memory a container can allocate
+    # blkio_config:
+    #   device_read_bps: 
+    #     - path: /dev/mapper # symbolic path to affected device
+    #       rate: 400 #number of bytes integer
+    #   device_write_bps:
+    #     - path: /dev/mapper # symbolic path to affected device
+    #       rate: 400 #number of bytes integer
+    # device_read_iops: 
+    #     - path: /dev/mapper # symbolic path to affected device
+    #       rate: 400 #number of operations per second integer
+    #   device_write_iops:
+    #     - path: /dev/mapper # symbolic path to affected device
+    #       rate: 400 #number of operations per second integer
+    # cpu_count: #number of usable cpus
+    # cpu_percent: #usable percentage of available CPUs
+    # cpu_shares: #relative cpu weight versus other containers, integer
+    # cpu_period: CPU CFS (scheduler) period
+    # cpu_quota: CPU CFS (scheduler) quota

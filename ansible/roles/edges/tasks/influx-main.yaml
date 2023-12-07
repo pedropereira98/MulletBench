@@ -1,0 +1,89 @@
+- name: Get authorization information
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/authorizations"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: authorizations
+  retries: 3
+  delay: 3
+  until: authorizations is not failed
+
+# - name: Print fetched authorizations
+  # ansible.builtin.debug:
+    # msg: "{{ authorizations['json']['authorizations'][0] }}"
+
+- name: Save influx_org_id
+  ansible.builtin.set_fact:
+    influx_org_id: "{{ authorizations['json']['authorizations'][0]['orgID'] }}"
+
+- name: Print organization id
+  ansible.builtin.debug:
+    msg: "{{ influx_org_id }}"
+
+# TODO test
+
+- name: Create bucket for downsampled data
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/buckets"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influx_bucket.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: downsampled_bucket_result
+  when: downsampling_interval is defined and downsampling
+  failed_when:
+    - downsampled_bucket_result.status != 201 and downsampled_bucket_result.status != 422
+  changed_when:
+    - downsampled_bucket_result.status != 422
+  
+# Check if task already exists
+
+- name: Enable downsampling
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/tasks"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influx_downsampling.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: downsampling_result
+  when: downsampling_interval is defined and downsampling
+  failed_when:
+    - downsampled_bucket_result.status != 201 and downsampled_bucket_result.status != 422
+  changed_when:
+    - downsampled_bucket_result.status != 422
+
+- name: Debug downsampling request
+  ansible.builtin.debug:
+    var: downsampling_result
+
+- name: Change bucket variable
+  ansible.builtin.set_fact:
+    influx_bucket: "{{ influx_bucket }}-downsampled"
+  when: downsampling_interval is defined and downsampling
+
+- name: Get bucket id
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/buckets?name={{ influx_bucket }}"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: buckets
+
+- name: Save bucket id
+  ansible.builtin.set_fact:
+    influx_bucket_id: "{{ buckets['json']['buckets'][0]['id'] }}"
+
+# After needed variables have been set, create the remote connection and replication stream
+
+- name: Stop any previous Edge-Cloud Replication
+  ansible.builtin.include_tasks: "influx-stop-replication.yaml"
+
+- name: Setup Edge-Cloud Replication
+  ansible.builtin.include_tasks: "influx-replication.yaml"
+  loop: "{{ replication_targets if replication_targets is iterable and replication_targets is not string else [] }}"
+  loop_control:
+    index_var: cloud_idx
+  when: replication_targets is defined

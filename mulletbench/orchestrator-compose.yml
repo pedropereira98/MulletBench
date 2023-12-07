@@ -1,0 +1,10 @@
+version: '3'
+services:
+  mulletbench:
+    container_name: mulletbench-orchestrator
+    image: mulletbench-orchestrator:latest
+    volumes:
+      - ./config:/home/app/config:rw
+      - ./results:/home/app/results:rw
+    ports:
+      - "27205:27205"

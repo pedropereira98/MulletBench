@@ -1,0 +1,14 @@
+{
+    "dropNonRetryableData": false,
+    "localBucketID": "{{ influx_bucket_id }}",
+    "maxAgeSeconds": 0,
+    {% if max_queue_size_bytes is defined %}
+    "maxQueueSizeBytes": {{ max_queue_size_bytes }},
+    {% else %}
+    "maxQueueSizeBytes": 67108860,
+    {% endif %}
+    "name": "replication_{{ cloud_idx }}",
+    "orgID": "{{ influx_org_id }}",
+    "remoteBucketID": "{{ remote_influx_bucket_id }}",
+    "remoteID": "{{ influx_connection_id }}"
+}

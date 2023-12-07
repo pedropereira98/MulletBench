@@ -1,0 +1,75 @@
+version: '3'
+services:
+  iotdb:
+    image: apache/iotdb:{{ iotdb_version }}-standalone #for running in a standalone configuration; otherwise needs config and datanodes
+    hostname: iotdb-{{ inventory_hostname }}
+    container_name: iotdb-{{ inventory_hostname }}
+    volumes:
+      - {{ home_dir }}/iotdb/{{ inventory_hostname }}/data:/iotdb/data
+      - {{ home_dir }}/iotdb/{{ inventory_hostname }}/logs:/iotdb/logs
+    ports:
+      - "{{ iotdb_port }}:6667" #RPC port
+    {% if limited_resources -%}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
+          memory: {{ limited_resources_mem }} #amount of memory a container can allocate
+
+    {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
+    blkio_config:
+      {% if limited_resources_read_bps is defined -%}
+      device_read_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_read_iops is defined -%}
+      device_read_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_iops }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_bps is defined -%}
+      device_write_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_iops is defined -%}
+      device_write_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_iops }}"
+
+      {% endif %}
+
+    {% endif %}
+
+    {% endif %}
+    
+    environment:
+      - cn_internal_address=iotdb-{{ inventory_hostname }}
+      - cn_internal_port=10710
+      - cn_consensus_port=10720
+      - cn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
+      - dn_rpc_address=iotdb-{{ inventory_hostname }}
+      - dn_internal_address=iotdb-{{ inventory_hostname }}
+      - dn_rpc_port=6667
+      - dn_mpp_data_exchange_port=10740
+      - dn_schema_region_consensus_port=10750
+      - dn_data_region_consensus_port=10760
+      - timestamp_precision=ns
+      - dn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
+      {% if limited_resources -%}
+      - MAX_HEAP_SIZE={{ limited_resources_mem }}
+      {% endif -%}
+      {% if inventory_hostname in groups['cloudservers'] -%}
+      - ip_white_list={{ hostvars | dict2items | selectattr('key', 'in', groups.edgeservers) | map(attribute='value.ansible_host')| product(['/32']) | map('join')| join(',') }} #for sync; in conf/iotdb-common.properties
+      {% elif inventory_hostname in groups['edgeservers'] -%}
+      - max_number_of_sync_file_retry=5 #for sync; in conf/iotdb-common.properties
+      - enable_timed_flush_seq_memtable=true # force timed sync
+      - seq_memtable_flush_interval_in_ms=20000 # force sync every 20 seconds; conf/iotdb-common.properties
+      {% endif %}

@@ -1,0 +1,38 @@
+database: {{ database }} 
+monitoringInterval: {{ monitoring_interval}}
+resultsFolder: /home/app/results
+clientContainerBase: "mulletbench-"
+{% if final_monitoring_period_sec is defined %}
+finalMonitoringPeriodS: {{ final_monitoring_period_sec }}
+{% endif %}
+clients:
+{% for host in groups['benchmark_clients']|list %}
+  - name: {{ host }}
+    address: {{ hostvars[host]['ansible_host'] }} 
+    type: {{ hostvars[host]['type'] }}
+    target: {{ hostvars[host]['target'] }}
+    monitor: {{ hostvars[host]['monitor'] }}
+{% endfor -%}
+stages:
+{% for stage in groups['benchmark_clients'] | map('extract', hostvars, 'stage') | unique | sort %}
+  - stage: {{ stage }}
+    clients:
+{% for host in groups['benchmark_clients'] %}
+{% if hostvars[host]['stage'] == stage %}
+    - {{ host }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+nodes:
+{% for host in groups['edgeservers']|list %}
+  - name: {{ host }}
+    layer: EDGE
+    address: {{ hostvars[host]['ansible_host'] }}
+    monitor: {{ hostvars[host]['monitor'] }}
+{% endfor -%}
+{% for host in groups['cloudservers']|list %}
+  - name: {{ host }}
+    layer: CLOUD
+    address: {{ hostvars[host]['ansible_host'] }}
+    monitor: {{ hostvars[host]['monitor'] -}}
+{% endfor -%}

@@ -1,0 +1,30 @@
+- name: Setup network simulation
+  when: network_sim is defined
+  block:
+    - debug:
+        var: network_sim
+
+    - name: Install tcconfig
+      ansible.builtin.pip:
+        name: tcconfig
+        state: present
+      become: true
+
+    - name: Install iproute2
+      ansible.builtin.apt:
+        name: iproute2
+        state: present
+      become: true
+
+    - name: Remove any previous tcconfig settings
+      ansible.builtin.shell:
+        "tcdel {{ database }}-{{ inventory_hostname }} --docker -a"
+      become: true
+
+    - debug:
+        msg: "{{ network_sim != None }}"
+
+    - name: Setup simulation for target
+      ansible.builtin.include_tasks:
+        "network-sim-set.yaml"
+      loop: "{{ network_sim if network_sim is iterable and network_sim is not string else [] }}"

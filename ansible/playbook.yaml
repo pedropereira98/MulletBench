@@ -1,0 +1,77 @@
+---
+
+- name: Load resource limiting variables
+  hosts: edgeservers
+  connection: local
+  tasks:
+    - name: Include resource limiting vars
+      ansible.builtin.include_vars:
+        file: "device_profiles/{{ limited_profile }}.yml"
+      when: limited_resources and use_resource_profile
+    - name: Limiting resource vars
+      ansible.builtin.debug:
+        msg: "{{ limited_resources_cpu }} and {{ limited_resources_mem }}"
+      when: limited_resources and use_resource_profile
+
+- name: Install pip for all hosts
+  hosts: all
+  become: true
+  tasks:
+    - name: Install pip
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+
+- name: Install docker for all hosts
+  hosts: all:localhost
+  become: true
+  vars:
+    docker_packages:
+      - "docker-{{ docker_edition }}"
+      - "docker-{{ docker_edition }}-cli"
+      - "docker-{{ docker_edition }}-rootless-extras"
+    docker_packages_state: present
+    pip_install_packages:
+      - name: cryptography
+        version: "3.4"
+      - name: docker
+      - name: docker-compose
+    docker_users:
+      - "{{ ansible_user }}"
+  roles:
+    - role: geerlingguy.pip # install docker python library
+      become: true
+    - role: geerlingguy.docker # install docker
+      become: true
+
+- name: Install database for all hosts
+  hosts:
+    - edgeservers
+    - cloudservers
+  roles:
+    - common-database
+
+- name: Config cloud servers
+  hosts: cloudservers
+  roles:
+    - clouds
+  tags:
+    - config
+
+- name: Config edge servers
+  hosts: edgeservers
+  roles:
+    - edges
+  tags:
+    - config
+
+- name: Run Benchmark Orchestrator
+  hosts: localhost
+  connection: local
+  roles:
+    - benchmark-orchestrator
+
+- name: Run Benchmark Clients
+  hosts: benchmark_clients
+  roles:
+    - benchmark-client

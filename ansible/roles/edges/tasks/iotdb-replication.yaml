@@ -1,0 +1,60 @@
+---
+- name: Replication for version 1.1.1
+  block:
+
+    - name: Create pipesink for cloud node
+      community.docker.docker_container_exec:
+        container: iotdb-{{ inventory_hostname }}
+        command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"CREATE PIPESINK pipesink_{{ cloud_idx }} AS IoTDB (IP='{{ hostvars[item]['ansible_host'] }}',PORT={{ hostvars[item]['iotdb_port'] }})\""
+        debug: true
+      register: create_pipesink
+      failed_when: "create_pipesink.rc != 0 and 'already exists' not in create_pipesink.stdout"
+      changed_when: "'already exists' not in create_pipesink.stdout"
+      retries: 3
+      delay: 3
+      until: create_pipesink is not failed
+
+
+    - name: Create pipe to pipesink
+      community.docker.docker_container_exec:
+        container: iotdb-{{ inventory_hostname }}
+        command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"CREATE PIPE pipe_{{ cloud_idx }} TO pipesink_{{ cloud_idx }}\""
+      register: create_pipe
+      failed_when: "create_pipe.rc != 0 and 'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+      changed_when: "'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+
+    # - name: Print result for create pipe
+    #   debug:
+    #     msg: "{{ create_pipe }}"
+
+    - name: Start pipe to pipesink
+      community.docker.docker_container_exec:
+        container: iotdb-{{ inventory_hostname }}
+        command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"start pipe pipe_{{ cloud_idx }}\""
+      register: start_pipe
+
+    # - name: Print result for start pipe
+    #   debug:
+    #     msg: "{{ start_pipe }}"
+  when: iotdb_version == "1.1.1"
+
+- name: Replication for version 1.2.2
+  block:
+    - name: Create pipe for cloud node
+      community.docker.docker_container_exec:
+        container: iotdb-{{ inventory_hostname }}
+        command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"CREATE PIPE pipe_{{ cloud_idx }} with connector ('connector' = 'iotdb-thrift-connector','connector.ip'='{{ hostvars[item]['ansible_host'] }}','connector.port'='{{ hostvars[item]['iotdb_port'] }}')\""
+        debug: true
+      register: create_pipesink
+      failed_when: "create_pipesink.rc != 0 and 'the pipe with the same name has been created' not in create_pipesink.stdout"
+      changed_when: "'the pipe with the same name has been created' not in create_pipesink.stdout"
+      retries: 3
+      delay: 3
+      until: create_pipesink is not failed
+
+    - name: Start pipe
+      community.docker.docker_container_exec:
+        container: iotdb-{{ inventory_hostname }}
+        command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"start pipe pipe_{{ cloud_idx }}\""
+      register: start_pipe
+  when: iotdb_version == "1.2.2"

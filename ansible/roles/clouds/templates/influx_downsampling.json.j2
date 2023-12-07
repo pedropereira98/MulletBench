@@ -1,0 +1,5 @@
+{
+    "description": "A cloud downsampling example task",
+    "flux": "option task = {name: \"edge-data-5s\", every: {{ downsampling_interval }}, offset: 5s } \n data = from(bucket: \"{{ influx_bucket }}\") \n |> range(start: -duration(v: int(v: task.every) * 2)) \n data \n |> aggregateWindow(fn: mean, every: {{ downsampling_interval }}) \n  |> to(bucket: \"{{ influx_bucket }}-downsampled\", org: \"{{ influx_org }}\")",
+    "orgID": "{{ influx_org_id }}"
+}

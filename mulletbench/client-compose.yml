@@ -1,0 +1,12 @@
+version: '3'
+services:
+  mulletbench:
+    container_name: mulletbench-client
+    image: mulletbench-client:latest
+    environment:
+      - CONFIG_PATH=config.yml
+      - MAX_MEMORY=4G
+      - FORK_JOIN_POOL_PARALLELISM=8
+    volumes:
+      - ./config:/home/app/config:ro
+      - ./data:/home/app/data:ro

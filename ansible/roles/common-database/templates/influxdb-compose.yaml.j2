@@ -1,0 +1,72 @@
+version: '2.4'
+services:
+  influxdb:
+    container_name: influx-{{ inventory_hostname }}
+    image: influxdb:{{ influx_version }}-alpine #should influxdb version be fixed?
+    volumes:
+      # Mount for influxdb data directory and configuration
+      {# - db-data:/var/lib/influxdb2:rw #}
+      - {{ home_dir }}/influxdb/{{ inventory_hostname }}/data:/var/lib/influxdb2:rw
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup #automated setup mode
+      - DOCKER_INFLUXDB_INIT_USERNAME={{ influx_username }}
+      - DOCKER_INFLUXDB_INIT_PASSWORD={{ influx_password }}
+      - DOCKER_INFLUXDB_INIT_ORG={{ influx_org }}
+      - DOCKER_INFLUXDB_INIT_BUCKET={{ influx_bucket }}
+      - INFLUXD_INSTANCE_ID={{inventory_hostname}} #Identifies edge nodes during replication
+      - INFLUXD_HTTP_READ_TIMEOUT=0 # No read request timeout 
+      # - INFLUXD_CONFIG_PATH=/etc/influxdb2/config.yml
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influx_token }}
+      {% if max_retention is defined %}- DOCKER_INFLUXDB_INIT_RETENTION={{ max_retention }} # The duration the system's initial bucket should retain data {%- endif -%}
+      
+      #- INFLUXD_STORAGE_WAL_FSYNC_DELAY=15ms #example envvar for influxdb config
+    ports:
+      - "{{ influx_port }}:8086"
+    {% if limited_resources -%}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
+          memory: {{ limited_resources_mem }} #amount of memory a container can allocate
+
+    {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
+    blkio_config:
+      {% if limited_resources_read_bps is defined -%}
+      device_read_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_read_iops is defined -%}
+      device_read_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_iops }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_bps is defined -%}
+      device_write_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_iops is defined -%}
+      device_write_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_iops }}"
+
+      {% endif %}
+
+    {% endif %}
+
+    {% endif %}
+
+    {% if not limited_resources -%}
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+    memswap_limit: 16g
+    {% endif %}

@@ -1,0 +1,59 @@
+clientId: {{ inventory_hostname }}
+orchestratorAddress: {{ orchestrator_ip }} 
+dataFile: {{ data_file }}
+dataset: {{ dataset }} #dataset name (Accel or GPSMPU)
+target: {{ database }}
+numWorkers: {{ num_workers }}
+type: {{ type }} #INSERT or QUERY
+currentTime: {{ current_time }} # if the benchmark is to use the current time for insertions and queries instead of the dataset timestamps
+sharedDataset: {{ shared_dataset }} # loads whole dataset into memory (shared for all workers) instead of iterating
+sharedConnection: {{ shared_connection }}
+{% if type == "INSERT" -%}
+insertion:
+  workerSectionSize: {{ insert_volume }}
+  batchSize: {{ batch_size }}
+  rate: {{ insert_rate }} #batches per second
+{% endif %}
+{% if type == "QUERY" -%}
+query:
+  count: {{ query_count }} #total queries submitted per worker
+  rate: {{ query_rate }} #queries per second
+  aggChance: {{ agg_weight }}
+  filterChance: {{ filter_weight }}
+  outlierChance: {{ outlier_filter_weight }}
+  downsampleChance: {{ downsample_weight }}
+  numberOfLoops: {{ num_loops }}
+  {% if count_outlier_filter is defined -%}
+  countOutlierFilter: {{ count_outlier_filter }} 
+  {% endif -%}
+  {% if filter_z_score is defined -%}
+  filterZScore: {{ filter_z_score }} 
+  {% endif -%}
+
+{% endif %}
+
+{% if database == "influx" -%}
+influx:
+  serverURL: "http://{{ hostvars[target]['ansible_host'] }}:{{ hostvars[target]['influx_port'] }}"
+  token: {{ influx_token }}
+  orgID: {{ hostvars[target]['influx_org_id'] }}
+  bucket: {{ influx_bucket }}
+  {% if write_timeout is defined -%}
+  writeTimeout: {{ write_timeout }} 
+  {% endif -%}
+  {% if read_timeout is defined -%}
+  readTimeout: {{ read_timeout }} 
+  {% endif -%}
+{% endif %}
+
+{% if database == "iotdb" -%}
+iotdb:
+  host: {{ hostvars[target]['ansible_host'] }}
+  port: {{ hostvars[target]['iotdb_port'] }}
+  username: "root"
+  password: "root"
+  devicePath: {{ hostvars[target]['iotdb_device_path'] }}
+  {% if align_by_device is defined -%}
+  queryAlignByDevice: {{ align_by_device }} 
+  {% endif -%}
+{% endif %}

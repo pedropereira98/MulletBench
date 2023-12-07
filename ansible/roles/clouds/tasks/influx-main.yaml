@@ -1,0 +1,63 @@
+# Variable saving possible should go to the instance creation playbooks
+
+- name: Get authorization information
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/authorizations"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: authorizations
+
+# - name: Print fetched authorizations
+  # ansible.builtin.debug:
+    # msg: "{{ authorizations['json']['authorizations'][0] }}"
+
+- name: Save influx_org_id
+  ansible.builtin.set_fact:
+    influx_org_id: "{{ authorizations['json']['authorizations'][0]['orgID'] }}"
+
+- name: Get bucket id
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/buckets?name={{ influx_bucket }}"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: buckets
+
+- name: Save bucket id
+  ansible.builtin.set_fact:
+    influx_bucket_id: "{{ buckets['json']['buckets'][0]['id'] }}"
+
+# TODO test
+
+- name: Create bucket for downsampled data
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/buckets"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influx_bucket.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: downsampled_bucket_result
+  when: downsampling_interval is defined and downsampling
+  failed_when:
+    - downsampled_bucket_result.status != 201
+  
+# Check if task already exists
+
+- name: Enable downsampling
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/tasks"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influx_downsampling.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: downsampling_result
+  when: downsampling_interval is defined and downsampling
+  failed_when:
+    - downsampling_result.status != 201
+
+- name: Debug downsampling request
+  ansible.builtin.debug:
+    var: downsampling_result
