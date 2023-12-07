@@ -1,0 +1,138 @@
+---
+
+- name: Install pcp for monitoring
+  ansible.builtin.apt:
+    name:
+      - pcp
+  become: true
+  when: monitor
+
+- name: Enable and start pmcd and pmlogger services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: restarted
+  with_items:
+    - pmcd
+    - pmlogger
+  when: monitor
+
+- name: Ensure /tmp/mulletbench dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Ensure /tmp/mulletbench/{{ inventory_hostname }} dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench/{{ inventory_hostname }}
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Ensure /tmp/mulletbench/{{ inventory_hostname }}/data dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench/{{ inventory_hostname }}/data
+    state: directory
+    mode: '777'
+  become: true
+
+# pull the image from a registry (github)
+
+# - name: Log into github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     username: "{{ github_username }}"
+#     password: "{{ github_pull_key }}"
+#   retries: 5
+#   delay: 2
+#   ignore_errors: true
+
+- name: Pull image from Github
+  community.docker.docker_image:
+    name: ghcr.io/pedropereira98/mulletbench-client
+    repository: mulletbench-client
+    tag: "{{ benchmark_client_version }}" # default = latest
+    source: pull
+    state: present
+    debug: true
+
+# - name: Log out of github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     state: absent
+
+- name: Copy compose file to remote
+  ansible.builtin.template:
+    src: templates/compose.yml.j2
+    dest: /tmp/mulletbench/{{ inventory_hostname }}/compose.yml
+    mode: '0500'
+
+- name: Copy data file
+  ansible.builtin.copy:
+    src: files/data/{{ data_file }}
+    dest: /tmp/mulletbench/{{ inventory_hostname }}/data/{{ data_file }}
+    mode: '0500'
+
+- name: Find number of loops inserted for query client
+  when: type == "QUERY" and num_loops is undefined
+  block:
+    - name: Find max insert_volume
+      ansible.builtin.set_fact:
+        max_insert_volume: "{{ groups['benchmark_clients'] | map('extract', hostvars) | selectattr('insert_volume', 'defined') | map(attribute='insert_volume') | list() | sort | last }}"
+
+    - name: Print maximum inserted volume
+      ansible.builtin.debug:
+        var: max_insert_volume
+
+    - name: Find number of lines
+      ansible.builtin.shell: wc -l < /tmp/mulletbench/{{ inventory_hostname }}/data/{{ data_file }}
+      register: data_file_wc_l
+
+    - name: Print number of lines
+      ansible.builtin.debug:
+        var: data_file_wc_l
+
+    - name: Set number of loops
+      ansible.builtin.set_fact:
+        num_loops: "{{ max_insert_volume | int / data_file_wc_l.stdout | int }}"
+
+    - name: Print number of loops
+      ansible.builtin.debug:
+        var: num_loops
+
+- name: Ensure /tmp/mulletbench/config dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench/{{ inventory_hostname }}/config
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Copy config
+  ansible.builtin.template:
+    src: templates/config.yml.j2
+    dest: /tmp/mulletbench/{{ inventory_hostname }}/config/config.yml
+    mode: '0500'
+
+- name: Launch MulletBench Client instance
+  community.docker.docker_compose:
+    project_src: /tmp/mulletbench/{{ inventory_hostname }}
+    project_name: mulletbench-client-{{ inventory_hostname }}
+    state: present
+  register: output
+
+# - name: Print Client output
+  # ansible.builtin.debug:
+    # msg: "{{ output }}"
+
+# - name: Wait for instance to be ready
+#   ansible.builtin.wait_for:
+#     port: 8086
+#     state: started
+
+- name: Set network simulation
+  ansible.builtin.include_tasks:
+    "network-sim.yaml"
+  when: network_sim is defined

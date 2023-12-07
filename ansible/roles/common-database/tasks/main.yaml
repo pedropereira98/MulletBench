@@ -1,0 +1,24 @@
+---
+
+- name: Install pcp for monitoring
+  ansible.builtin.apt:
+    name:
+      - pcp
+  become: true
+
+- name: Enable and start pmcd and pmlogger services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: restarted
+  with_items:
+    - pmcd
+    - pmlogger
+
+- name: Run database instalation
+  ansible.builtin.include_tasks: "{{ database }}-main.yaml"
+
+- name: Set network simulation
+  ansible.builtin.include_tasks:
+    "network-sim.yaml"

@@ -1,0 +1,14 @@
+---
+
+- name: Config IoTDB cloud node
+  ansible.builtin.debug:
+    msg: No cloud IoTDB configuration needed
+
+- name: Enable downsampling (continuous query)
+  community.docker.docker_container_exec:
+    container: iotdb-{{ inventory_hostname }}
+    command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"{{ lookup('template', 'iotdb_cq.j2') }}\""
+  # failed_when: "create_pipe.rc != 0 and 'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  # changed_when: "'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  register: downsampling_result
+  when: downsampling_interval is defined and downsampling

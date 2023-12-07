@@ -1,0 +1,4 @@
+---
+
+- name: Run cloud node configuration
+  ansible.builtin.include_tasks: "{{ database }}-main.yaml"

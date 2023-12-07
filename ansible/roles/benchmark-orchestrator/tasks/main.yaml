@@ -1,0 +1,66 @@
+---
+
+# - name: Log into github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     username: "{{ github_username }}"
+#     password: "{{ github_pull_key }}"
+#   register: login
+#   until: not login.failed
+#   retries: 5
+#   delay: 2
+
+- name: Pull orchestrator image from Github
+  community.docker.docker_image:
+    name: ghcr.io/pedropereira98/mulletbench-orchestrator
+    repository: mulletbench-orchestrator
+    tag: "{{ benchmark_client_version }}"  # default = latest
+    source: pull
+    state: present
+    debug: true
+
+# - name: Log out of github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     state: absent
+
+- name: Ensure /tmp/mulletbench-orch dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench-orch
+    state: directory
+    mode: '1777'
+
+- name: Copy compose file to remote
+  ansible.builtin.template:
+    src: templates/compose.yml.j2
+    dest: /tmp/mulletbench-orch/compose.yml
+    mode: '0500'
+
+- name: Ensure /tmp/mulletbench-orch/config dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench-orch/config
+    state: directory
+    mode: '1777'
+
+- name: Copy config
+  ansible.builtin.template:
+    src: templates/config.yml.j2
+    dest: /tmp/mulletbench-orch/config/config.yml
+    mode: '0500'
+
+- name: Ensure /tmp/mulletbench-orch/results dir exists
+  ansible.builtin.file:
+    path: /tmp/mulletbench-orch/results
+    state: directory
+    mode: '1777'
+
+- name: Launch MulletBench Orchestrator instance
+  community.docker.docker_compose:
+    project_src: /tmp/mulletbench-orch/
+    project_name: mulletbench-orchestrator
+    state: present
+  register: output
+
+- name: Print orchestrator output
+  ansible.builtin.debug:
+    msg: "{{ output }}"

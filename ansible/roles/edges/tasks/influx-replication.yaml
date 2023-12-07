@@ -1,0 +1,63 @@
+---
+# Iterated over for every cloud host
+
+- name: Print cloud server ip
+  ansible.builtin.debug:
+    msg: "Setting replicaton to {{ item }}"
+
+- name: Save cloud server info orgID
+  ansible.builtin.set_fact:
+    remote_influx_url: "{{ hostvars[item]['ansible_host'] }}"
+    remote_influx_org_id: "{{ hostvars[item]['influx_org_id'] }}"
+    remote_influx_bucket_id: "{{ hostvars[item]['influx_bucket_id'] }}"
+    remote_influx_port: "{{ hostvars[item]['influx_port'] }}"
+
+# Maybe before and only run if it's not already present
+- name: Create remote connection
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/remotes"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influxdb-conn.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+    status_code: [201, 500]
+  register: connection_create
+  failed_when:
+    - connection_create.status != 201
+    - '"UNIQUE constraint failed:" not in connection_create.json.message'
+
+- name: Print connection creation result
+  ansible.builtin.debug:
+    msg: "{{ connection_create }}"
+
+- name: Get remote connections information
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/remotes?orgID={{ influx_org_id }}"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+  register: connection_list
+
+- name: Print connections
+  ansible.builtin.debug:
+    msg: "{{ connection_list }}"
+
+- name: Save remote connection ID
+  ansible.builtin.set_fact:
+    influx_connection_id: "{{ connection_list['json']['remotes'][0]['id'] }}"
+
+# Maybe before and only run if it's not already present
+- name: Create replication stream
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/replications"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'influxdb-replic.json.j2') }}"
+    headers:
+      Authorization: Token {{ influx_token }}
+    status_code: [201, 500]
+  register: replication_create
+  failed_when:
+    - connection_create.status != 201
+    - '"UNIQUE constraint failed:" not in connection_create.json.message'

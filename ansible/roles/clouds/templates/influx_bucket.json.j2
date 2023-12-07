@@ -1,0 +1,10 @@
+{
+    "orgID": "{{ influx_org_id }}",
+    "name": "{{ influx_bucket }}-downsampled",
+    "retentionRules": [
+        {
+            "type": "expire",
+            "everySeconds": 0
+        }
+    ]
+}

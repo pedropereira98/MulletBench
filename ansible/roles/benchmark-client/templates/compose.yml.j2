@@ -1,0 +1,12 @@
+version: '3'
+services:
+  mulletbench:
+    container_name: mulletbench-{{ inventory_hostname }}
+    image: mulletbench-client:{{ benchmark_client_version }}
+    environment:
+      - CONFIG_PATH=config.yml
+      - MAX_MEMORY={{ max_memory }}
+      - FORK_JOIN_POOL_PARALLELISM={{ fjp_parallelism }}
+    volumes:
+      - ./config:/home/app/config:ro
+      - ./data:/home/app/data:ro

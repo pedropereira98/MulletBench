@@ -1,0 +1,24 @@
+- name: Check tmp iotdb directory
+  ansible.builtin.stat:
+    path: /tmp/iotdb
+  register: dir
+
+- name: Check iotdb instance directory
+  ansible.builtin.stat:
+    path: /tmp/iotdb/{{ inventory_hostname }}
+  register: instance_dir
+  when: dir.stat.isdir is defined and dir.stat.isdir
+
+- name: Shutdown Apache IoTDB instance
+  community.docker.docker_compose:
+    project_src: /tmp/iotdb/{{ inventory_hostname }}
+    state: absent
+  when: dir.stat.isdir is defined and dir.stat.isdir and instance_dir.stat.isdir is defined and instance_dir.stat.isdir
+
+- name: Remove IoTDB data folder
+  become: true
+  ansible.builtin.file:
+    state: absent
+    path: "{{ home_dir }}/iotdb/{{ inventory_hostname }}"
+  tags: ['hard-reset']
+  when: "'hard-reset' in ansible_run_tags" # only run this task if the hard_reset tag is explicitely set

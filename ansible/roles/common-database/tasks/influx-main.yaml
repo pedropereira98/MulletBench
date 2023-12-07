@@ -1,0 +1,43 @@
+---
+- name: Set default port if not defined
+  ansible.builtin.set_fact:
+    influx_port: 8086
+  when: influx_port is undefined
+
+- name: Ensure /tmp/influx dir exists
+  ansible.builtin.file:
+    path: /tmp/influxdb/
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Ensure /tmp/influx/{{ inventory_hostname }} dir exists
+  ansible.builtin.file:
+    path: /tmp/influxdb/{{ inventory_hostname }}
+    state: directory
+    mode: '777'
+  become: true
+
+
+- name: Copy compose file to remote
+  ansible.builtin.template:
+    src: templates/influxdb-compose.yaml.j2
+    dest: /tmp/influxdb/{{ inventory_hostname }}/compose.yaml
+    mode: '0500'
+
+- name: Launch InfluxDB instance
+  community.docker.docker_compose:
+    project_src: /tmp/influxdb/{{ inventory_hostname }}/
+    state: present
+    remove_orphans: true
+
+- name: Wait for instance to be ready
+  ansible.builtin.wait_for:
+    port: 8086
+    state: started
+    delay: 2
+
+# - name: Restart container (fixes broken resource monitoring)
+#   community.docker.docker_compose:
+#     project_src: /tmp/influxdb/{{ inventory_hostname }}/
+#     restarted: true

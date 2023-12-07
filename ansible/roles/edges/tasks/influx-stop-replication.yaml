@@ -1,0 +1,21 @@
+- name: Get list of current existing replications
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/replications?orgID={{ influx_org_id }}"
+    method: GET
+    headers:
+      Authorization: Token {{ influx_token }}
+    status_code: [200, 500]
+  register: replication_list
+
+- name: Set list of replications
+  ansible.builtin.set_fact:
+    replications: "{{ replication_list.json.replications }}"
+
+- name: Stop replication
+  ansible.builtin.uri:
+    url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/replications/{{ item.id }}"
+    method: DELETE
+    headers:
+      Authorization: Token {{ influx_token }}
+    status_code: [204, 500]
+  loop: "{{ replications if replications is iterable and replications is not string else [] }}"

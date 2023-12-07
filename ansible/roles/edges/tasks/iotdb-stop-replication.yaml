@@ -1,0 +1,74 @@
+- name: Stop replication for version 1.1.1
+  block:
+  - name: Get list of current existing pipes
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"SHOW PIPES \""
+      debug: true
+    register: show_pipes
+    failed_when: show_pipes.rc != 0
+    until: show_pipes is not failed
+
+  - name: Set list of pipes
+    ansible.builtin.set_fact:
+      pipes: "{{ show_pipes.stdout | regex_findall('(pipe_[^|]*)') }}"
+
+  - name: Stop pipe
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"DROP PIPE {{ item }} \""
+      debug: true
+    register: stop_pipe
+    failed_when: stop_pipe.rc != 0
+    until: stop_pipe is not failed
+    loop: "{{ pipes if pipes is iterable and pipes is not string else [] }}"
+
+  - name: Get list of current existing pipesinks
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"SHOW PIPESINKS \""
+      debug: true
+    register: show_pipesinks
+    failed_when: show_pipesinks.rc != 0
+    until: show_pipesinks is not failed
+
+  - name: Set list of pipesinks
+    ansible.builtin.set_fact:
+      pipesinks: "{{ show_pipesinks.stdout | regex_findall('(pipesink_[^|]*)') }}"
+
+  - name: Stop pipesink
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"DROP PIPESINK {{ item }} \""
+      debug: true
+    register: stop_pipesink
+    failed_when: stop_pipesink.rc != 0
+    until: stop_pipesink is not failed
+    loop: "{{ pipesinks if pipesinks is iterable and pipesinks is not string else [] }}"
+  when: iotdb_version == "1.1.1"
+
+- name: Stop replication for version 1.2.2
+  block:
+  - name: Get list of current existing pipes
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"SHOW PIPES \""
+      debug: true
+    register: show_pipes
+    failed_when: show_pipes.rc != 0
+    until: show_pipes is not failed
+
+  - name: Set list of pipes
+    ansible.builtin.set_fact:
+      pipes: "{{ show_pipes.stdout | regex_findall('(pipe_[^|]*)') }}"
+
+  - name: Stop pipe
+    community.docker.docker_container_exec:
+      container: iotdb-{{ inventory_hostname }}
+      command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"DROP PIPE {{ item }} \""
+      debug: true
+    register: stop_pipe
+    failed_when: stop_pipe.rc != 0
+    until: stop_pipe is not failed
+    loop: "{{ pipes if pipes is iterable and pipes is not string else [] }}"
+  when: iotdb_version == "1.1.1"

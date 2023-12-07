@@ -1,0 +1,64 @@
+---
+
+- name: Set default port if not defined
+  ansible.builtin.set_fact:
+    iotdb_port: 6667
+  when: iotdb_port is undefined
+
+- name: Ensure /tmp/iotdb dir exists
+  ansible.builtin.file:
+    path: /tmp/iotdb
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Ensure /tmp/iotdb/{{ inventory_hostname }} dir exists
+  ansible.builtin.file:
+    path: /tmp/iotdb/{{ inventory_hostname }}
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Set max number of connection requests queued
+  ansible.posix.sysctl:
+    name: net.core.somaxconn
+    value: 65535
+    sysctl_set: true
+    state: present
+    reload: true
+  become: true
+
+- name: Check content of template
+  ansible.builtin.debug:
+    msg: "{{ lookup('template', 'iotdb-compose.yaml.j2') }}"
+
+- name: Copy compose file to remote
+  ansible.builtin.template:
+    src: templates/iotdb-compose.yaml.j2
+    dest: /tmp/iotdb/{{ inventory_hostname }}/compose.yaml
+    mode: '0500'
+
+- name: Launch Apache IoTDB instance
+  community.docker.docker_compose:
+    project_src: /tmp/iotdb/{{ inventory_hostname }}/
+    state: present
+    remove_orphans: true
+
+- name: Wait for instance to be ready
+  ansible.builtin.wait_for:
+    port: "{{ iotdb_port }}"
+    state: started
+    delay: 2
+
+- name: Set retention period
+  community.docker.docker_container_exec:
+    container: iotdb-{{ inventory_hostname }}
+    command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"set ttl TO {{ iotdb_device_path }} {{ max_retention }}\""
+  register: set_retention_period
+  failed_when: "set_retention_period.rc != 0"
+  when: max_retention is defined
+
+# - name: Restart container (fixes broken resource monitoring)
+#   community.docker.docker_compose:
+#     project_src: /tmp/iotdb/{{ inventory_hostname }}/
+#     restarted: true

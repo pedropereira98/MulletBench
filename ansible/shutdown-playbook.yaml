@@ -1,0 +1,12 @@
+- name: Shutdown servers
+  hosts:
+    - edgeservers
+    - cloudservers
+  tasks:
+    - name: Shutdown servers
+      ansible.builtin.include_role:
+        name: common-database
+        tasks_from: "{{database}}-shutdown"
+  tags:
+    - shutdown
+    - hard-reset
