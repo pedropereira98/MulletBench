@@ -33,7 +33,11 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@main
         with:
+<<<<<<< HEAD
           cosign-release: 'v2.2.2'
+=======
+          cosign-release: 'v2.0.0'
+>>>>>>> 80dc9f5 (Adds initial source code)
 
 
       # Workaround: https://github.com/docker/build-push-action/issues/461
@@ -101,7 +105,11 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
+<<<<<<< HEAD
         run: echo "${{ steps.client_meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.client_build-and-push.outputs.digest }}
+=======
+        run: echo "${{ steps.client_meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.client_build-and-push.outputs.digest }}
+>>>>>>> 80dc9f5 (Adds initial source code)
 
       - name: Sign the published orchestrator Docker image
         if: ${{ github.event_name != 'pull_request' }}
@@ -109,4 +117,8 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
+<<<<<<< HEAD
         run: echo "${{ steps.orch_meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.orch_build-and-push.outputs.digest }}
+=======
+        run: echo "${{ steps.orch_meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.orch_build-and-push.outputs.digest }}
+>>>>>>> 80dc9f5 (Adds initial source code)

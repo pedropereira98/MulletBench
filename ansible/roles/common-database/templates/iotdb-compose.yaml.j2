@@ -1,3 +1,4 @@
+version: '3'
 services:
   iotdb:
     image: apache/iotdb:{{ iotdb_version }}-standalone #for running in a standalone configuration; otherwise needs config and datanodes
@@ -13,7 +14,7 @@ services:
       resources:
         limits:
           cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
-          memory: {{ '%dM' | format(limited_resources_mem) }} #amount of memory a container can allocate
+          memory: {{ limited_resources_mem }} #amount of memory a container can allocate
 
     {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
     blkio_config:
@@ -53,11 +54,7 @@ services:
       - cn_internal_address=iotdb-{{ inventory_hostname }}
       - cn_internal_port=10710
       - cn_consensus_port=10720
-      {% if iotdb_version >= "1.2" -%}
-      - cn_seed_config_node=iotdb-{{ inventory_hostname }}:10710
-      {% else -%}
       - cn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
-      {% endif -%}
       - dn_rpc_address=iotdb-{{ inventory_hostname }}
       - dn_internal_address=iotdb-{{ inventory_hostname }}
       - dn_rpc_port=6667
@@ -65,15 +62,9 @@ services:
       - dn_schema_region_consensus_port=10750
       - dn_data_region_consensus_port=10760
       - timestamp_precision=ns
-      {% if iotdb_version >= "1.2" -%}
-      - dn_seed_config_node=iotdb-{{ inventory_hostname }}:10710
-      {% else -%}
       - dn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
-      {% endif -%}
-      {% if iotdb_version >= "1.3" and limited_resources -%}
-      - MEMORY_SIZE={{ '%dM' | format(limited_resources_mem | int / 4)}}
-      {% elif limited_resources -%}
-      - MAX_HEAP_SIZE={{ '%dM' | format(limited_resources_mem | int / 4)}}
+      {% if limited_resources -%}
+      - MAX_HEAP_SIZE={{ limited_resources_mem }}
       {% endif -%}
       {% if inventory_hostname in groups['cloudservers'] -%}
       - ip_white_list={{ hostvars | dict2items | selectattr('key', 'in', groups.edgeservers) | map(attribute='value.ansible_host')| product(['/32']) | map('join')| join(',') }} #for sync; in conf/iotdb-common.properties

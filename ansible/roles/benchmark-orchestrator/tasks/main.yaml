@@ -1,21 +1,14 @@
 ---
-- name: Prepare local Orchestrator image
-  block:
-    - name: Inspect orchestrator image
-      community.docker.docker_image_info:
-        name:
-          - mulletbench-orchestrator:{{ benchmark_orchestrator_version }}
-      register: orchestrator_image
 
-    - name: Build local image
-      community.docker.docker_image_build:
-        name: mulletbench-orchestrator
-        path: ../mulletbench
-        tag: "{{ benchmark_orchestrator_version }}"
-        dockerfile: orchestrator.dockerfile
-      when: orchestrator_image.images | length == 0
-  when: local
-
+# - name: Log into github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     username: "{{ github_username }}"
+#     password: "{{ github_pull_key }}"
+#   register: login
+#   until: not login.failed
+#   retries: 5
+#   delay: 2
 
 - name: Pull orchestrator image from Github
   community.docker.docker_image:
@@ -25,7 +18,11 @@
     source: pull
     state: present
     debug: true
-  when: not local
+
+# - name: Log out of github registry
+#   community.docker.docker_login:
+#     registry_url: ghcr.io
+#     state: absent
 
 - name: Ensure /tmp/mulletbench-orch dir exists
   ansible.builtin.file:
@@ -58,8 +55,12 @@
     mode: '1777'
 
 - name: Launch MulletBench Orchestrator instance
-  community.docker.docker_compose_v2:
+  community.docker.docker_compose:
     project_src: /tmp/mulletbench-orch/
     project_name: mulletbench-orchestrator
     state: present
   register: output
+
+- name: Print orchestrator output
+  ansible.builtin.debug:
+    msg: "{{ output }}"
