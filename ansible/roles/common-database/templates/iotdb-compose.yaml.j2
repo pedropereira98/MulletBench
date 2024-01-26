@@ -54,7 +54,11 @@ services:
       - cn_internal_address=iotdb-{{ inventory_hostname }}
       - cn_internal_port=10710
       - cn_consensus_port=10720
+      {% if iotdb_version >= "1.2" -%}
+      - cn_seed_config_node=iotdb-{{ inventory_hostname }}:10710
+      {% else -%}
       - cn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
+      {% endif -%}
       - dn_rpc_address=iotdb-{{ inventory_hostname }}
       - dn_internal_address=iotdb-{{ inventory_hostname }}
       - dn_rpc_port=6667
@@ -62,7 +66,11 @@ services:
       - dn_schema_region_consensus_port=10750
       - dn_data_region_consensus_port=10760
       - timestamp_precision=ns
+      {% if iotdb_version >= "1.2" -%}
+      - dn_seed_config_node=iotdb-{{ inventory_hostname }}:10710
+      {% else -%}
       - dn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
+      {% endif -%}
       {% if limited_resources -%}
       - MAX_HEAP_SIZE={{ limited_resources_mem }}
       {% endif -%}
