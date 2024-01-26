@@ -1,4 +1,4 @@
-- name: Stop replication for version 1.1.1
+- name: Stop replication for older version
   block:
   - name: Get list of current existing pipes
     community.docker.docker_container_exec:
@@ -71,4 +71,4 @@
     failed_when: stop_pipe.rc != 0
     until: stop_pipe is not failed
     loop: "{{ pipes if pipes is iterable and pipes is not string else [] }}"
-  when: iotdb_version == "1.1.1"
+  when: iotdb_version < "1.2"
