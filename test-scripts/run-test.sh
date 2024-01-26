@@ -85,7 +85,7 @@ do
         echo "$(date +%T) - Skipping runs" && exit 0
     fi
 
-    echo "$(date +%T) - Starting test" && ansible-playbook $ANSIBLE_PATH/playbook.yaml -i $FULL_HOSTS_PATH --vault-password-file $ANSIBLE_PATH/vault-pw.txt
+    echo "$(date +%T) - Starting test" && ansible-playbook $ANSIBLE_PATH/playbook.yaml -i $FULL_HOSTS_PATH
 
     # Check if orchestrator is running
     if [ "$( docker container inspect -f '{{.State.Status}}' mulletbench-orchestrator )" == "running" ]
