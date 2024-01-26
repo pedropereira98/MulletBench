@@ -1,0 +1,144 @@
+# This file provides an example configuration for an insertion test with 2 edge servers and 1 cloud server, using 1 second downsampling at the edge.
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: true
+    shared_dataset: true
+    shared_connection: false
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: v1.00
+    benchmark_orchestrator_version: v1.00
+
+    monitoring_interval: 2sec
+    final_monitoring_period_sec: 120
+
+    ansible_connection: ssh
+    ansible_user: gsd
+
+    home_dir: /home
+    blkio_path: /dev/mapper/vg00-home #required for blkio_config (io or bps limiting)
+edgeservers:
+  hosts:
+    edge1:
+      ansible_host: 192.168.112.111
+      ansible_connection: ssh
+      ansible_user: gsd
+      
+      monitor: true
+      
+      limited_resources: true
+      use_resource_profile: true
+      limited_profile: rpi4
+
+      replication_targets:
+        - cloud1
+
+      downsampling: true
+      downsampling_interval: 1s
+
+    edge2:
+      ansible_host: 192.168.112.117
+      ansible_connection: ssh
+      ansible_user: gsd
+      
+      monitor: true
+
+      limited_resources: true
+      use_resource_profile: true
+      limited_profile: rpi4
+
+      replication_targets:
+        - cloud1
+
+      downsampling: true
+      downsampling_interval: 1s
+
+cloudservers:
+  hosts:
+    cloud1:
+      ansible_host: 192.168.112.118
+      ansible_connection: ssh
+      ansible_user: gsd
+      limited_resources: false
+      monitor: true
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.87
+      monitor: true
+
+      target: edge1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      insert_volume: 96000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+
+    client11:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.87
+      monitor: true
+
+      target: edge1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      insert_volume: 96000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+
+    client2:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.90
+      monitor: true
+
+      target: edge2
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      insert_volume: 96000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+
+    client21:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.90
+      monitor: true
+
+      target: edge2
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      insert_volume: 96000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 40
+    orchestrator_ip: 192.168.112.100
+    read_timeout: 60

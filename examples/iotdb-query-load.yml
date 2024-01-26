@@ -1,0 +1,168 @@
+# This file provides an example configuration for the loading phase of a query test with a single cloud server.
+all:
+  vars:
+    database: iotdb #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: false
+    shared_dataset: true
+    shared_connection: false
+
+    iotdb_device_path: "root.gps.mpu.*"
+    iotdb_version: 1.1.1
+    align_by_device: true
+    
+    benchmark_client_version: v1.00
+    benchmark_orchestrator_version: v1.00
+
+    monitoring_interval: 2sec
+
+    ansible_connection: ssh
+    ansible_user: gsd
+
+    home_dir: /home
+edgeservers:
+cloudservers:
+  hosts:
+    cloud1:
+      ansible_host: 192.168.112.118
+      ansible_connection: ssh
+      ansible_user: gsd
+      limited_resources: false
+      monitor: true
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.87
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client11:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.87
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client2:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.90
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client21:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.90
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+
+    client3:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.93
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client31:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.93
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client4:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.95
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+    client41:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.95
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 12
+      type: INSERT
+
+      insert_volume: 2160540 # total number of inserted points per worker
+      batch_size: 400 # number of points per batch
+      insert_rate: 2 # number of inserted batches per second per worker
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 15
+    orchestrator_ip: 192.168.112.100
+    read_timeout: 60

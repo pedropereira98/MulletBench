@@ -31,6 +31,9 @@ MulletBench is a TSDB benchmarking tool with a focus on edge-cloud hybrid deploy
 
 ## Running a test
 
+To run any test, you first need to get a dataset to be used and place it in the directory `ansible/roles/benchmark-client/files/data`.
+The current implementation supports the usage of the Passive Vehicular Sensors dataset.
+
 To run a single test run without any automatic graph generation, run:
 
 ``` bash
