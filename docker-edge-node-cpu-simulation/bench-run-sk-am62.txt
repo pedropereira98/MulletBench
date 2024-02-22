@@ -1,0 +1,34 @@
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 25
+This machine benchmarks at 1957713 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 25
+This machine benchmarks at 1957713 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 25
+This machine benchmarks at 1956947 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 25
+This machine benchmarks at 1958480 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 25
+This machine benchmarks at 1957713 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6729475 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6729475 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6738544 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6738544 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6738544 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 141 sec.
+C Converted Double Precision Whetstones: 709.2 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 63 sec.
+C Converted Double Precision Whetstones: 1587.3 MIPS
