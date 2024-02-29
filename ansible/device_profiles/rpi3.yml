@@ -1,5 +1,5 @@
 limited_resources_cpu: '4'
-limited_resources_mem: 1024M
+limited_resources_mem: 1024 # in MB
 limited_resources_read_bps: 22M #Pi 3 B+ with SD card
 limited_resources_write_bps: 16M #Pi 3 B+ with SD card
 limited_resources_read_iops: 2700 # 4k read with SD card

@@ -10,7 +10,7 @@
       when: limited_resources and use_resource_profile
     - name: Limiting resource vars
       ansible.builtin.debug:
-        msg: "{{ limited_resources_cpu }} and {{ limited_resources_mem }}"
+        msg: "{{ limited_resources_cpu }} and {{ '%dM' | format(limited_resources_mem) }}"
       when: limited_resources and use_resource_profile
 
 - name: Install pip for all hosts

@@ -27,7 +27,7 @@ services:
       resources:
         limits:
           cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
-          memory: {{ limited_resources_mem }} #amount of memory a container can allocate
+          memory: {{ '%dM' | format(limited_resources_mem) }} #amount of memory a container can allocate
 
     {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
     blkio_config:
