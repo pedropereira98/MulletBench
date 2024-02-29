@@ -14,7 +14,7 @@ services:
       resources:
         limits:
           cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
-          memory: {{ limited_resources_mem }} #amount of memory a container can allocate
+          memory: {{ '%dM' | format(limited_resources_mem) }} #amount of memory a container can allocate
 
     {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
     blkio_config:
@@ -71,8 +71,10 @@ services:
       {% else -%}
       - dn_target_config_node_list=iotdb-{{ inventory_hostname }}:10710
       {% endif -%}
-      {% if limited_resources -%}
-      - MAX_HEAP_SIZE={{ limited_resources_mem }}
+      {% if iotdb_version >= "1.3" and limited_resources -%}
+      - MEMORY_SIZE={{ '%dM' | format(limited_resources_mem | int / 4)}}
+      {% elif limited_resources -%}
+      - MAX_HEAP_SIZE={{ '%dM' | format(limited_resources_mem | int / 4)}}
       {% endif -%}
       {% if inventory_hostname in groups['cloudservers'] -%}
       - ip_white_list={{ hostvars | dict2items | selectattr('key', 'in', groups.edgeservers) | map(attribute='value.ansible_host')| product(['/32']) | map('join')| join(',') }} #for sync; in conf/iotdb-common.properties
