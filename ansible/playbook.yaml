@@ -22,6 +22,36 @@
         name:
           - python3-pip
 
+- name: Fix Python3.11 externally managed
+  hosts: all
+  become: true
+  tasks:
+    - name: get python3 version installed
+      ansible.builtin.command: python3 --version
+      register: py3ver
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version >= "23"
+
+    - name: Debug
+      ansible.builtin.debug:
+        var: py3ver
+
+    - name: remove EXTERNALLY-MANAGED if we're on Ubuntu 23 
+      ansible.builtin.file:
+        path: /usr/lib/python3.11/EXTERNALLY-MANAGED
+        state: absent
+      when: py3ver.stdout is defined and py3ver.stdout.find("3.11") != -1
+
+- name: Install docker and docker compose for all hosts
+  hosts: all:localhost
+  become: true
+  tasks:
+    - name: Install docker python modules
+      pip:
+        name:
+          - PyYAML==5.3.1
+          - docker==6.1.3
+          - docker-compose>==1.29.2
+
 - name: Install docker for all hosts
   hosts: all:localhost
   become: true
