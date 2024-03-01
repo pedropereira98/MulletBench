@@ -1,2 +1,4 @@
 mulletbench/mulletbench-orchestrator/.editorconfig
 ansible/.ansible-lint
+results-plot/results
+*.csv

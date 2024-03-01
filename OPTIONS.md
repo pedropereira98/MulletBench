@@ -76,6 +76,7 @@ Orchestrator options should be set for the localhost, as the orchestrator is run
 
 | Option | Description |
 | --- | --- |
+| local | whether to locally build the Orchestrator image, boolean (defaults to false) |
 | database  | name of tested database (to know name of container to monitor with PCP) |
 | monitoring\_interval  | string to define at which rate monitoring should be performed (as received by PCP)  |
 | final\_monitoring\_period\_sec | length of additional database resource monitoring after test is finished in seconds |
@@ -86,7 +87,8 @@ Client options should be set for hosts in the *benchmark_clients* group.
 
 | Option | Description |
 | --- | --- |
-dataset  | name of dataset used in test  |
+| local | whether to locally build the Client image, boolean (defaults to false) |
+| dataset  | name of dataset used in test  |
 | current\_time | whether operations should use current time or original dataset time, boolean|
 | shared\_dataset | whether the loaded dataset should be shared by all workers, boolean |
 | shared\_connection | whether database connection should be shared by all workers, boolean |
