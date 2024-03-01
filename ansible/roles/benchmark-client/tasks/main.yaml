@@ -39,16 +39,42 @@
     mode: '777'
   become: true
 
-# pull the image from a registry (github)
+- name: Locally build Client image
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Inspect image
+      community.docker.docker_image_info:
+        name:
+          - mulletbench-client:{{ benchmark_client_version }}
+      register: local_client_image
 
-# - name: Log into github registry
-#   community.docker.docker_login:
-#     registry_url: ghcr.io
-#     username: "{{ github_username }}"
-#     password: "{{ github_pull_key }}"
-#   retries: 5
-#   delay: 2
-#   ignore_errors: true
+    - name: Build local image
+      community.docker.docker_image_build:
+        name: mulletbench-client
+        path: ../mulletbench
+        tag: "{{ benchmark_client_version }}"
+        dockerfile: client.dockerfile
+      when: local_client_image.images | length == 0
+
+    - name: Export image
+      community.docker.docker_image_export:
+        name: mulletbench-client:{{ benchmark_client_version }} 
+        path: /tmp/mulletbench-client-{{ benchmark_client_version }}.tar
+  when: local
+
+- name: Copy Client image to remote
+  ansible.builtin.copy:
+    src: /tmp/mulletbench-client-{{ benchmark_client_version }}.tar
+    dest: /tmp/mulletbench-client-{{ benchmark_client_version }}.tar
+  when: local
+
+# load
+- name: Load image from tar
+  community.docker.docker_image_load:
+    path: /tmp/mulletbench-client-{{ benchmark_client_version }}.tar
+  register: result
+  when: local
 
 - name: Pull image from Github
   community.docker.docker_image:
@@ -58,11 +84,7 @@
     source: pull
     state: present
     debug: true
-
-# - name: Log out of github registry
-#   community.docker.docker_login:
-#     registry_url: ghcr.io
-#     state: absent
+  when: not local
 
 - name: Copy compose file to remote
   ansible.builtin.template:
