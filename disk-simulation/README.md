@@ -4,7 +4,7 @@ This tool uses fio to determine a node's disk capabilities. The values retrieved
 
 ## Configuration file
 
-The tests are specified using a configuration file. For each test, you must specify: a name, block size, iodepth, O_DIRECT, and workload (as per fio options). 
+The tests are specified using a configuration file. For each test, you must specify the following parameters: name, block size, iodepth, O_DIRECT, and workload (as per fio options). 
 
 Below is an example file. Your file should contain the same header:
 
@@ -28,7 +28,7 @@ To run a test, simply pass the configuration file to the standard input of the t
 ```
 
 ## Run test on docker
-We also provide the option to run the tests within a Docker container. In this case, the configuration file must be called `test-list.txt`.
+We also provide the option to run the tests within a Docker container. In this case, you must provide a configuration file called `test-list.txt`, in the same folder as `./build-docker.sh`.
 
 First, build the image.
 ```
@@ -40,3 +40,7 @@ Then run it like below:
 docker run edge-node-disk-bench 
 ```
 
+You can experiment to see how docker configurations affect the results of your test (don't forget to set the correct device path):
+```
+docker run --device-write-bps="<device-path>:1000mb" --device-write-iops="<device-path>:1000" edge-node-disk-bench 
+```
