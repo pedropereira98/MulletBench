@@ -12,13 +12,21 @@ while read line; do
     iodepth=$(echo $line | cut -d ' ' -f 3)
     direct=$(echo $line | cut -d ' ' -f 4)
     workload=$(echo $line | cut -d ' ' -f 5)
+    if [[ $workload == *"write" ]]; then
+    	throughput_idx=48
+        iops_idx=49
+    elif [[ $workload == *"read" ]]; then
+        throughput_idx=7
+        iops_idx=8
+    fi	
+    
     for I in $(eval echo "{1..$ITERATIONS}")
     do
         run=$(fio --minimal --name=test --directory=. --numjobs=1 --size=$TEST_SIZE --time_based --runtime=22s --ramp_time=2s  --direct=$direct --verify=0 --bs=$block --iodepth=$iodepth --rw=$workload --group_reporting=1)
         run=$(echo "$run" | awk '$1 ~ /^[1-9]/')
         #echo "$run"
-        throughput=$(echo "$run" | cut -d ';' -f 48)
-        iops=$(echo "$run" | cut -d ';' -f 49)
+	throughput=$(echo "$run" | cut -d ';' -f $throughput_idx)
+        iops=$(echo "$run" | cut -d ';' -f $iops_idx)
         SUM_THROUGHPUT=$(echo "$SUM_THROUGHPUT + $throughput" | bc)
         SUM_IOPS=$(echo "$SUM_IOPS + $iops" | bc)
     done
