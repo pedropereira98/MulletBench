@@ -1,0 +1,12 @@
+---
+
+- name: Stop any previous Edge-Cloud Replication
+  ansible.builtin.include_tasks: "timescale-stop-replication.yaml"
+
+- name: Setup Edge-Cloud Replication
+  ansible.builtin.include_tasks: "timescale-replication.yaml"
+  loop: "{{ replication_targets  if replication_targets is iterable and replication_targets is not string else [] }}"
+  loop_control:
+    index_var: cloud_idx
+  when: replication_targets is defined
+

@@ -1,0 +1,69 @@
+version: '2.4'
+services:
+  timescaledb:
+    container_name: timescale-{{ inventory_hostname }}
+    image: timescale/timescaledb:{{ timescale_version }} #should timescaledb version be fixed?
+    volumes:
+      # Mount for timescaledb data directory and configuration
+      - {{ home_dir }}/timescaledb/{{ inventory_hostname }}/data:/var/lib/postgresql/data:rw #for timescaledb
+      {# - {{ home_dir }}/timescaledb/{{ inventory_hostname }}/data:/home/postgres/pgdata/data:rw #for timescaledb-ha #}
+
+    environment:
+        - TIMESCALEDB_TELEMETRY=off
+        - POSTGRES_PASSWORD={{ timescale_password }}
+         {% if limited_resources -%}
+        - TS_TUNE_MEMORY='{{ '%dM' | format(limited_resources_mem) }}'
+        - TS_TUNE_NUM_CPUS='{{ limited_resources_cpu }}'
+
+        {% endif %}
+
+    ports:
+      - "{{ timescale_port }}:5432"
+    {% if limited_resources -%}
+    deploy:
+      resources:
+        limits:
+          cpus: '{{ limited_resources_cpu }}' #number of cores a container can use
+          memory: {{ '%dM' | format(limited_resources_mem) }} #amount of memory a container can allocate
+
+    {% if limited_resources_read_bps is defined or limited_resources_read_iops is defined or limited_resources_write_bps is defined or limited_resources_write_iops is defined -%}
+    blkio_config:
+      {% if limited_resources_read_bps is defined -%}
+      device_read_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_read_iops is defined -%}
+      device_read_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_read_iops }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_bps is defined -%}
+      device_write_bps:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_bps }}"
+
+      {% endif %}
+
+      {% if limited_resources_write_iops is defined -%}
+      device_write_iops:
+        - path: {{ blkio_path }}
+          rate: "{{ limited_resources_write_iops }}"
+
+      {% endif %}
+
+    {% endif %}
+
+    {% endif %}
+
+    {% if not limited_resources -%}
+    deploy:
+      resources:
+        limits:
+          memory: 16g
+    memswap_limit: 16g
+    {% endif %}

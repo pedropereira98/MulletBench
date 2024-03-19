@@ -1,0 +1,31 @@
+- name: Check tmp TimescaleDB directory
+  ansible.builtin.stat:
+    path: /tmp/timescaledb
+  register: dir
+
+- name: Check TimescaleDB instance directory
+  ansible.builtin.stat:
+    path: /tmp/timescaledb/{{ inventory_hostname }}
+  register: instance_dir
+  when: dir.stat.isdir is defined and dir.stat.isdir
+
+- name: Shutdown TimescaleDB instance
+  community.docker.docker_compose:
+    project_src: /tmp/timescaledb/{{ inventory_hostname }}
+    state: absent
+  when: dir.stat.isdir is defined and dir.stat.isdir and instance_dir.stat.isdir is defined and instance_dir.stat.isdir and not 'hard-reset' in ansible_run_tags
+
+- name: Shutdown TimescaleDB instance and remove volumes
+  community.docker.docker_compose:
+    project_src: /tmp/timescaledb/{{ inventory_hostname }}
+    remove_volumes: true
+    state: absent
+  when: dir.stat.isdir is defined and dir.stat.isdir and instance_dir.stat.isdir is defined and instance_dir.stat.isdir and 'hard-reset' in ansible_run_tags # only run this task if the hard_reset tag is explicitely set
+
+- name: Remove TimescaleDB data folder
+  become: true
+  ansible.builtin.file:
+    state: absent
+    path: "{{ home_dir }}/timescaledb/{{ inventory_hostname }}"
+  tags: ['hard-reset']
+  when: "'hard-reset' in ansible_run_tags" # only run this task if the hard_reset tag is explicitely set

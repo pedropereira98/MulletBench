@@ -1,0 +1,33 @@
+---
+- name: Set default port if not defined
+  ansible.builtin.set_fact:
+    timescale_port: 5432
+  when: timescale_port is undefined
+
+
+- name: Ensure /tmp/timescaledb dir exists
+  ansible.builtin.file:
+    path: /tmp/timescaledb/
+    state: directory
+    mode: '777'
+  become: true
+
+- name: Ensure /tmp/timescaledb/{{ inventory_hostname }} dir exists
+  ansible.builtin.file:
+    path: /tmp/timescaledb/{{ inventory_hostname }}
+    state: directory
+    mode: '777'
+  become: true
+
+
+- name: Copy compose file to remote
+  ansible.builtin.template:
+    src: templates/timescaledb-compose.yaml.j2
+    dest: /tmp/timescaledb/{{ inventory_hostname }}/compose.yaml
+    mode: '0500'
+
+- name: Launch TimescaleDB instance
+  community.docker.docker_compose:
+    project_src: /tmp/timescaledb/{{ inventory_hostname }}/
+    state: present
+    remove_orphans: true
