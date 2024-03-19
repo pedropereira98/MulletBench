@@ -1,0 +1,5 @@
+---
+
+- name: Config Timescale cloud node
+  ansible.builtin.debug:
+    msg: No cloud Timescale configuration needed
