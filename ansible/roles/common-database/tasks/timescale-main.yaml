@@ -19,7 +19,6 @@
     mode: '777'
   become: true
 
-
 - name: Copy compose file to remote
   ansible.builtin.template:
     src: templates/timescaledb-compose.yaml.j2
@@ -31,3 +30,41 @@
     project_src: /tmp/timescaledb/{{ inventory_hostname }}/
     state: present
     remove_orphans: true
+
+# - name: Create database
+#   community.docker.docker_container_exec:
+#     container: "timescale-{{ inventory_hostname }}"
+#     command: psql -U postgres -c "create database mulletbench;"
+#   register: create_database
+#   failed_when: "'already exists' not in create_database.stderr and create_database.rc != 0"
+#   changed_when: "'already exists' not in create_database.stderr"
+
+- name: Wait for instance to be ready
+  ansible.builtin.wait_for:
+    port: "{{ timescale_port }}"
+    state: started
+    delay: 5
+
+- name: Create sensors table
+  community.docker.docker_container_exec:
+    container: "timescale-{{ inventory_hostname }}"
+    command: psql -U postgres -c "CREATE TABLE sensors (
+                        id SERIAL PRIMARY KEY,
+                        name TEXT NOT NULL
+                    )"
+  register: create_sensors_table
+  failed_when: "'already exists' not in create_sensors_table.stderr and create_sensors_table.rc != 0"
+  changed_when: "'already exists' not in create_sensors_table.stderr"
+
+- name: Create sensor data hypertable
+  community.docker.docker_container_exec:
+      container: "timescale-{{ inventory_hostname }}"
+      command: psql -U postgres -c "CREATE TABLE sensor_data (
+                        time TIMESTAMP NOT NULL,
+                        device_id TEXT NOT NULL,
+                        sensor_id INTEGER REFERENCES sensors (id),
+                        value DOUBLE PRECISION
+                    ); SELECT create_hypertable('sensor_data', by_range('time', INTERVAL '60 minutes'));"
+  register: create_data_table
+  failed_when: "'already exists' not in create_data_table.stderr and create_data_table.rc != 0"
+  changed_when: "'already exists' not in create_data_table.stderr"
