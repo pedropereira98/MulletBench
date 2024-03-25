@@ -57,3 +57,12 @@ iotdb:
   queryAlignByDevice: {{ align_by_device }} 
   {% endif -%}
 {% endif %}
+
+{% if database == "timescale" -%}
+timescale:
+  host: {{ hostvars[target]['ansible_host']}}
+  port: {{ hostvars[target]['timescale_port']}}
+  username: "postgres"
+  password: "{{ timescale_password }}"
+  database: "postgres"
+{% endif %}
