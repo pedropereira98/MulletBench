@@ -1,5 +1,7 @@
 package pt.haslab.mulletbench.database;
 
+import pt.haslab.mulletbench.queries.Query;
+
 import java.util.List;
 
 public interface DatabaseConnector {
@@ -8,7 +10,7 @@ public interface DatabaseConnector {
     //Performs insertion of a batch of records for a deviceId
     boolean write(List<String> records, String deviceId);
 
-    List query(String query) throws FailedQueryException;
+    List query(Query query) throws FailedQueryException;
 
     void close();
 

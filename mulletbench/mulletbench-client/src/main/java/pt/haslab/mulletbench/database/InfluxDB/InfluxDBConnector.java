@@ -18,6 +18,7 @@ import com.influxdb.query.FluxTable;
 
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
+import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.utils.InfluxDBOptions;
 import pt.haslab.mulletbench.utils.InsertionOptions;
 
@@ -56,9 +57,9 @@ public class InfluxDBConnector implements DatabaseConnector {
         return true;
     }
 
-    public List<String> query(String query) throws FailedQueryException {
+    public List<String> query(Query query) throws FailedQueryException {
         try{
-            List<FluxTable> results = queryAPI.query(query);
+            List<FluxTable> results = queryAPI.query(query.queryString());
 
             List<String> resultStrings = new LinkedList<>();
             for(FluxTable fluxTable: results){

@@ -24,9 +24,10 @@ public abstract class QueryWorker extends Worker {
     private void measuredQuery(Query query){
         long before = TimeProvider.getNanoTime();
         logger.info("Starting query");
-        logger.debug(query);
+        logger.debug(query.queryString());
         try {
-            List<String> results = connector.query(query.queryString());
+            List<String> results = connector.query(query);
+            logger.debug(results.size());
             long after = TimeProvider.getNanoTime();
             // TODO check results?
 
