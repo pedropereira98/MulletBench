@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import pt.haslab.mulletbench.database.DatabaseConnectionFailedException;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
+import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.utils.InsertionOptions;
 import pt.haslab.mulletbench.utils.IoTDBOptions;
 
@@ -39,11 +40,11 @@ public class IoTDBConnector implements DatabaseConnector {
     }
 
     @Override
-    public List query(String query) throws FailedQueryException {
+    public List query(Query query) throws FailedQueryException {
         SessionDataSet resultSet;
 
         try{
-            resultSet = session.executeQueryStatement(query);
+            resultSet = session.executeQueryStatement(query.queryString());
         } catch (IoTDBConnectionException e){
             logger.error("Connection error while querying", e);
             throw new FailedQueryException(e.getMessage());
