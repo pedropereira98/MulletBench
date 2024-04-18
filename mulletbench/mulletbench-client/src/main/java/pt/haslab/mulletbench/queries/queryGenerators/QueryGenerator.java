@@ -26,6 +26,8 @@ public abstract class QueryGenerator {
 
     protected Random random;
 
+    private Boolean useFieldIndex = false;
+
     // Probability weights for each query type
     int aggChance;
     int filterChance;
@@ -40,7 +42,12 @@ public abstract class QueryGenerator {
         this.from = switch (options.target) {
             case "influx" ->  options.influx.bucket;
             case "iotdb" -> options.iotdb.devicePath;
+            case "timescale" -> options.timescale.tableName;
             default -> throw new IllegalStateException("Unexpected value: " + options.target);
+        };
+        this.useFieldIndex = switch (options.target){
+            case "timescale" -> true;
+            default -> false;
         };
         this.random = new Random();
 
@@ -78,7 +85,21 @@ public abstract class QueryGenerator {
     }
 
     protected String getRandomColumn(){
-        return this.columns.get(random.nextInt(this.columns.size()));
+        int randomIdx = random.nextInt(this.columns.size());
+        if(this.useFieldIndex) {
+            return String.valueOf(randomIdx);
+        }
+        else {
+            return this.columns.get(randomIdx);
+        }
+    }
+
+    protected int columnIndex(String field){
+        if(this.useFieldIndex){
+            return Integer.parseInt(field);
+        } else {
+            return columns.indexOf(field);
+        }
     }
 
     protected AggregationFunction getRandomAggregatorFunction(){

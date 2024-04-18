@@ -34,6 +34,8 @@ public class ClientOptions {
 
     public IoTDBOptions iotdb = new IoTDBOptions();
 
+    public TimescaleDBOptions timescale = new TimescaleDBOptions();
+
     public QueryOptions query = new QueryOptions();
     public InsertionOptions insertion = new InsertionOptions();
 
@@ -47,7 +49,7 @@ public class ClientOptions {
     }
 
     public static ClientOptions load() throws IOException{
-        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yaml");
+        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
 
         return loadWithReader(configFileReader);
     }
