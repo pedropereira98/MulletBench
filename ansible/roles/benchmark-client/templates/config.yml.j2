@@ -62,6 +62,7 @@ iotdb:
 timescale:
   host: {{ hostvars[target]['ansible_host']}}
   port: {{ hostvars[target]['timescale_port']}}
+  tableName: {{ timescale_table_name }}
   username: "postgres"
   password: "{{ timescale_password }}"
   database: "postgres"
