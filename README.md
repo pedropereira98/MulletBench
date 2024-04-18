@@ -52,3 +52,7 @@ cd test-scripts
 ## Configuration options
 
 You can check out all the available configuration options in [options.md](OPTIONS.md).
+
+## Adding support for additional databases
+
+You can read on how to add support for additional databases in [database-support.md](DATABASE-SUPPORT.md).
