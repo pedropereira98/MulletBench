@@ -100,7 +100,7 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
     // Filters values for a field in time ranges between 5 seconds and 20 minutes (depending on the range of data)
     protected Query generateFilter(){
         String field = getRandomColumn(); //get random field from columns
-        int fieldIdx = columns.indexOf(field);
+        int fieldIdx = columnIndex(field);
 
         // queryRange is at least 5 seconds and at most 20 minutes
         Duration minimumRange = Duration.ofSeconds(5);
@@ -133,7 +133,7 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
     // Finds extreme values for a field in time ranges between 5 seconds and 20 minutes (depending on the range of data)
     protected Query generateOutlierFilter(){
         String field = getRandomColumn(); //get random field from columns
-        int fieldIdx = columns.indexOf(field);
+        int fieldIdx = columnIndex(field);
 
         // queryRange is at least 5 seconds and at most 20 minutes
         Duration minimumRange = Duration.ofSeconds(5);
@@ -248,6 +248,5 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
         }
 
         timeController.processFinish(logger);
-
     }
 }

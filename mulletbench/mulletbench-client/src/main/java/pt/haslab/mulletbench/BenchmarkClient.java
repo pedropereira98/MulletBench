@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -89,7 +90,7 @@ public class BenchmarkClient {
         logger.debug("Wrote object with " + options.clientId);
     }
 
-    public void insertionWorkload() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException, InterruptedException {
+    public void insertionWorkload() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException, InterruptedException, SQLException {
         logger.info("Starting insertion workload");
 
         Thread[] threadList = new Thread[options.numWorkers];
@@ -144,7 +145,7 @@ public class BenchmarkClient {
         }
     }
 
-    public void queryWorkload() throws DatabaseConnectionFailedException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public void queryWorkload() throws DatabaseConnectionFailedException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, SQLException {
         logger.info("Starting query workload");
         TimeController tc;
         if (options.currentTime){

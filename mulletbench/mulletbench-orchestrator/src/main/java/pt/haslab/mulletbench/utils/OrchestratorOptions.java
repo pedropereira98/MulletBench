@@ -30,7 +30,7 @@ public class OrchestratorOptions {
     }
 
     public static OrchestratorOptions load() throws FileNotFoundException, IOException{
-        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yaml");
+        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
 
         return loadWithReader(configFileReader);
     }

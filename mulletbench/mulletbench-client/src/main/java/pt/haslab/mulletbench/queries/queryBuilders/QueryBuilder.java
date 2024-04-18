@@ -52,6 +52,7 @@ public abstract class QueryBuilder {
         return switch (options.target) {
             case "influx" -> new InfluxQueryBuilder();
             case "iotdb" -> new IoTDBQueryBuilder(options.iotdb.queryAlignByDevice);
+            case "timescale" -> new TimescaleQueryBuilder();
             default -> throw new IllegalArgumentException("Invalid query generator name");
         };
     }

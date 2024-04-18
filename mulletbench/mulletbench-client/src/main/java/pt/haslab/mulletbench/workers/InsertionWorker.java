@@ -34,7 +34,7 @@ public class InsertionWorker extends Worker {
         // System.out.println("Worker " + workerNumber + " inserting " + measurements.size() + " measurements");
         if(connector.write(measurements, workerId)){
             long after = TimeProvider.getNanoTime();
-            logger.debug("Time to write: " + (after - before / 1_000_000L) + " ms");
+            logger.debug("Time to write: " + ((after - before) / 1_000_000L) + " ms");
             stats.registerOperation(before, TimeProvider.getNanoTime(), measurements.size(), OperationType.INSERT);
         } else {
             logger.info("Failed insert");
