@@ -59,7 +59,7 @@
 - name: Create sensor data hypertable
   community.docker.docker_container_exec:
       container: "timescale-{{ inventory_hostname }}"
-      command: psql -U postgres -c "CREATE TABLE sensor_data (
+      command: psql -U postgres -c "CREATE TABLE {{ timescale_table_name }}(
                         time TIMESTAMP NOT NULL,
                         device_id TEXT NOT NULL,
                         sensor_id INTEGER REFERENCES sensors (id),
