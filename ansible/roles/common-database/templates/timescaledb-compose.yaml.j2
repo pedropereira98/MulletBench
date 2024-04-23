@@ -3,6 +3,13 @@ services:
   timescaledb:
     container_name: timescale-{{ inventory_hostname }}
     image: timescale/timescaledb:{{ timescale_version }} #should timescaledb version be fixed?
+
+    {# If has replication targets #}
+    {% if replication_targets is defined -%}
+    command: postgres -c listen_addresses='*' -c wal_level=replica -c max_wal_senders={{ replication_targets | length }} -c max_replication_slots={{ replication_target | length }} -c synchronous_commit=off
+    {% endif %}
+
+
     volumes:
       # Mount for timescaledb data directory and configuration
       - {{ home_dir }}/timescaledb/{{ inventory_hostname }}/data:/var/lib/postgresql/data:rw #for timescaledb

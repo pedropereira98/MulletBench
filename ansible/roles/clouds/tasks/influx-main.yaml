@@ -28,8 +28,6 @@
   ansible.builtin.set_fact:
     influx_bucket_id: "{{ buckets['json']['buckets'][0]['id'] }}"
 
-# TODO test
-
 - name: Create bucket for downsampled data
   ansible.builtin.uri:
     url: "http://{{ ansible_host }}:{{ influx_port }}/api/v2/buckets"

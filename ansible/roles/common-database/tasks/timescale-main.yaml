@@ -31,14 +31,6 @@
     state: present
     remove_orphans: true
 
-# - name: Create database
-#   community.docker.docker_container_exec:
-#     container: "timescale-{{ inventory_hostname }}"
-#     command: psql -U postgres -c "create database mulletbench;"
-#   register: create_database
-#   failed_when: "'already exists' not in create_database.stderr and create_database.rc != 0"
-#   changed_when: "'already exists' not in create_database.stderr"
-
 - name: Wait for instance to be ready
   ansible.builtin.wait_for:
     port: "{{ timescale_port }}"
@@ -65,6 +57,10 @@
                         sensor_id INTEGER REFERENCES sensors (id),
                         value DOUBLE PRECISION
                     ); SELECT create_hypertable('sensor_data', by_range('time', INTERVAL '60 minutes'));"
+                    # TODO Change interval to see if performance improves
+                    # ); SELECT create_hypertable('sensor_data', by_range('time', INTERVAL '3 hours'));"
+                    # ); "
+
   register: create_data_table
   failed_when: "'already exists' not in create_data_table.stderr and create_data_table.rc != 0"
   changed_when: "'already exists' not in create_data_table.stderr"

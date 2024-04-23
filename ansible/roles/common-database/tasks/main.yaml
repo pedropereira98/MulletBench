@@ -5,6 +5,7 @@
     name:
       - pcp
   become: true
+  when: monitor
 
 - name: Enable and start pmcd and pmlogger services
   become: true
@@ -15,6 +16,7 @@
   with_items:
     - pmcd
     - pmlogger
+  when: monitor
 
 - name: Run database instalation
   ansible.builtin.include_tasks: "{{ database }}-main.yaml"

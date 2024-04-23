@@ -3,3 +3,22 @@
 - name: Print Not Implemented
   ansible.builtin.debug:
     msg: "Not Implemented" 
+
+
+- name: Create replication slots
+  community.docker.docker_container_exec:
+    container: timescaledb-{{ inventory_hostname }}
+    command: "psql -U postgres -c \"SELECT * FROM pg_create_physical_replication_slot('replica_{{ cloud_idx }}_slot');\""
+  # failed_when: "create_pipe.rc != 0 and 'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  # changed_when: "'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  register: replication_slots
+
+  # Configure pg_hba.conf with credentials 
+  # host  replication repuser <REPLICATION_HOST_IP>/32  scram-sha-256
+
+- name: Restart Timescale instance
+  community.docker.docker_container:
+    name: timescale-{{ inventory_hostname }}
+    restart: true
+    state: started
+  register: container_restart
