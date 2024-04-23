@@ -101,7 +101,7 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
-        run: echo "${{ steps.client_meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.client_build-and-push.outputs.digest }}
+        run: echo "${{ steps.client_meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.client_build-and-push.outputs.digest }}
 
       - name: Sign the published orchestrator Docker image
         if: ${{ github.event_name != 'pull_request' }}
@@ -109,4 +109,4 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
-        run: echo "${{ steps.orch_meta.outputs.tags }}" | xargs -I {} cosign sign {}@${{ steps.orch_build-and-push.outputs.digest }}
+        run: echo "${{ steps.orch_meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.orch_build-and-push.outputs.digest }}
