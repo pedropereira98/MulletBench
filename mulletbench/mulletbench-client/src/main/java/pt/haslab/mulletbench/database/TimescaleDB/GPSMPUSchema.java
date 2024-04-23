@@ -90,7 +90,7 @@ public class GPSMPUSchema implements TimescaleDBSchema{
                 insertStatement.setInt(3, s-2);
             }
             insertStatement.setDouble(4, Double.parseDouble(splitString[s]));
-            logger.debug("Insert " + splitString[s] + " into " + deviceId);
+//            logger.debug("Insert " + splitString[s] + " into " + deviceId);
             insertStatement.addBatch();
         }
     }

@@ -3,3 +3,12 @@
 - name: Config Timescale cloud node
   ansible.builtin.debug:
     msg: No cloud Timescale configuration needed
+
+- name: Configure pg_hba.conf with credentials
+  community.docker.docker_container_exec:
+    container: timescale-{{ inventory_hostname }}
+    command: "echo \"host  replication repuser {{ item }}/32  scram-sha-256\" >> /var/lib/postgresql/data/pg_hba.conf "
+  # failed_when: "create_pipe.rc != 0 and 'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  # changed_when: "'is RUNNING' not in create_pipe.stdout and 'is STOP' not in create_pipe.stdout"
+  register: pg_hba_credentials
+  loop: "{{ groups['edgeservers'] | selectattr('replication_targets', 'contains', ansible_host) | map(attribute='value.ansible_host') }}"
