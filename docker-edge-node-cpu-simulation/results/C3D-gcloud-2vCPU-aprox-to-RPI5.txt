@@ -1,0 +1,285 @@
+Opened file: RPI5_cpu_results.txt
+Optimizing CPU docker setting.
+Target values:
+Avg dhrystone: 11.416151 M
+Avg dhrystoneOptimized: 32.141952 M
+Avg whetstone: 4.142540 K
+Avg whetstoneOptimized: 10.080800 K
+Starting first test
+Error: No such container: test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12135922 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12224938 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12135922 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 11876484 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 11848341 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 33557046 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 32894736 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 33783783 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 32894736 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 33783783 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 49 sec.
+C Converted Double Precision Whetstones: 2040.8 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 28 sec.
+C Converted Double Precision Whetstones: 3571.4 MIPS
+Opened file: ./results/optimizer-run-1.000cpu.txt
+Avg dhrystone: 12.044321 M
+Avg dhrystoneOptimized: 33.382817 M
+Avg whetstone: 2.040800 K
+Avg whetstoneOptimized: 3.571400 K
+Delta dhrystone: 5.502471 %
+Delta dhrystone: 3.860576 %
+Delta whetstone: -50.735539 %
+Delta whetstone optimized: -64.572256 %
+Avg delta: -0.264862 ; Next CPU value: 1.132431 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12224938 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12106537 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12195121 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 6
+This machine benchmarks at 8077544 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6793478 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 17361111 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 19305019 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 18939393 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 19531250 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 18382352 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 101 sec.
+C Converted Double Precision Whetstones: 990.1 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 56 sec.
+C Converted Double Precision Whetstones: 1785.7 MIPS
+Opened file: ./results/optimizer-run-1.132cpu.txt
+Avg dhrystone: 10.279524 M
+Avg dhrystoneOptimized: 18.703825 M
+Avg whetstone: 0.990100 K
+Avg whetstoneOptimized: 1.785700 K
+Delta dhrystone: -9.956310 %
+Delta dhrystone: -41.808684 %
+Delta whetstone: -76.099205 %
+Delta whetstone optimized: -82.286128 %
+Avg delta: -0.525376 ; Next CPU value: 1.429907 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6150061 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6172839 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6134969 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6195786 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 7
+This machine benchmarks at 6385696 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 18181818 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 17182130 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 16722408 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 16835016 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 17857142 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 96 sec.
+C Converted Double Precision Whetstones: 1041.7 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 57 sec.
+C Converted Double Precision Whetstones: 1754.4 MIPS
+Opened file: ./results/optimizer-run-1.430cpu.txt
+Avg dhrystone: 6.207870 M
+Avg dhrystoneOptimized: 17.355703 M
+Avg whetstone: 1.041700 K
+Avg whetstoneOptimized: 1.754400 K
+Delta dhrystone: -45.622038 %
+Delta dhrystone: -46.002960 %
+Delta whetstone: -74.853592 %
+Delta whetstone optimized: -82.596619 %
+Avg delta: -0.622688 ; Next CPU value: 1.875100 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6142506 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6075334 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 5938242 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6060606 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 8
+This machine benchmarks at 6045949 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 17301038 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 16501650 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 16611295 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 17182130 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 2
+This machine benchmarks at 16722408 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 96 sec.
+C Converted Double Precision Whetstones: 1041.7 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 56 sec.
+C Converted Double Precision Whetstones: 1785.7 MIPS
+Opened file: ./results/optimizer-run-1.875cpu.txt
+Avg dhrystone: 6.052527 M
+Avg dhrystoneOptimized: 16.863704 M
+Avg whetstone: 1.041700 K
+Avg whetstoneOptimized: 1.785700 K
+Delta dhrystone: -46.982767 %
+Delta dhrystone: -47.533665 %
+Delta whetstone: -74.853592 %
+Delta whetstone optimized: -82.286128 %
+Avg delta: -0.629140 ; Next CPU value: 2.464950 
+
+
+test-machine
+docker: Error response from daemon: Range of CPUs is from 0.01 to 2.00, as there are only 2 CPUs available.
+See 'docker run --help'.
+Opened file: ./results/optimizer-run-2.465cpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+
+
+Error: No such container: test-machine
+invalid argument "-nan" for "--cpus" flag: failed to parse -nan as a rational number
+See 'docker run --help'.
+Opened file: ./results/optimizer-run--nancpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+
+
+Error: No such container: test-machine
+invalid argument "-nan" for "--cpus" flag: failed to parse -nan as a rational number
+See 'docker run --help'.
+Opened file: ./results/optimizer-run--nancpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+
+
+Error: No such container: test-machine
+invalid argument "-nan" for "--cpus" flag: failed to parse -nan as a rational number
+See 'docker run --help'.
+Opened file: ./results/optimizer-run--nancpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+
+
+Error: No such container: test-machine
+invalid argument "-nan" for "--cpus" flag: failed to parse -nan as a rational number
+See 'docker run --help'.
+Opened file: ./results/optimizer-run--nancpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+
+
+Error: No such container: test-machine
+invalid argument "-nan" for "--cpus" flag: failed to parse -nan as a rational number
+See 'docker run --help'.
+Opened file: ./results/optimizer-run--nancpu.txt
+Avg dhrystone: -nan M
+Avg dhrystoneOptimized: -nan M
+Avg whetstone: -nan K
+Avg whetstoneOptimized: -nan K
+Delta dhrystone: -nan %
+Delta dhrystone: -nan %
+Delta whetstone: -nan %
+Delta whetstone optimized: -nan %
+Avg delta: -nan ; Next CPU value: -nan 
+

@@ -1,0 +1,476 @@
+Opened file: RPI5_cpu_results.txt
+Optimizing CPU docker setting.
+Target values:
+Avg dhrystone: 11.416151 M
+Avg dhrystoneOptimized: 32.141952 M
+Avg whetstone: 4.142540 K
+Avg whetstoneOptimized: 10.080800 K
+Starting first test
+Error response from daemon: No such container: test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 65789473 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 65789473 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 28 sec.
+C Converted Double Precision Whetstones: 3571.4 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 15 sec.
+C Converted Double Precision Whetstones: 6666.7 MIPS
+Opened file: ./results/optimizer-run-1.000cpu.txt
+Avg dhrystone: 13.550135 M
+Avg dhrystoneOptimized: 67.411679 M
+Avg whetstone: 3.571400 K
+Avg whetstoneOptimized: 6.666700 K
+Delta dhrystone: 18.692675 %
+Delta dhrystone: 109.731129 %
+Delta whetstone: -13.787193 %
+Delta whetstone optimized: -33.867352 %
+Avg delta: 0.201923 ; Next CPU value: 0.899038 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13513513 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13513513 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13550135 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 69444444 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 69444444 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 69444444 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 31 sec.
+C Converted Double Precision Whetstones: 3225.8 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 17 sec.
+C Converted Double Precision Whetstones: 5882.4 MIPS
+Opened file: ./results/optimizer-run-0.899cpu.txt
+Avg dhrystone: 13.535486 M
+Avg dhrystoneOptimized: 69.063926 M
+Avg whetstone: 3.225800 K
+Avg whetstoneOptimized: 5.882400 K
+Delta dhrystone: 18.564359 %
+Delta dhrystone: 114.871598 %
+Delta whetstone: -22.129901 %
+Delta whetstone optimized: -41.647488 %
+Avg delta: 0.174146 ; Next CPU value: 0.820756 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13404825 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13440860 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13440860 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13404825 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13404825 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 67567567 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 67567567 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 66666666 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 68493150 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 33 sec.
+C Converted Double Precision Whetstones: 3030.3 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 19 sec.
+C Converted Double Precision Whetstones: 5263.2 MIPS
+Opened file: ./results/optimizer-run-0.821cpu.txt
+Avg dhrystone: 13.419239 M
+Avg dhrystoneOptimized: 67.757620 M
+Avg whetstone: 3.030300 K
+Avg whetstoneOptimized: 5.263200 K
+Delta dhrystone: 17.546089 %
+Delta dhrystone: 110.807419 %
+Delta whetstone: -26.849228 %
+Delta whetstone optimized: -47.789858 %
+Avg delta: 0.134286 ; Next CPU value: 0.765648 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13054830 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13054830 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13054830 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13020833 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 13054830 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 66666666 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 65789473 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 66666666 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 65789473 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 37 sec.
+C Converted Double Precision Whetstones: 2702.7 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 20 sec.
+C Converted Double Precision Whetstones: 5000.0 MIPS
+Opened file: ./results/optimizer-run-0.766cpu.txt
+Avg dhrystone: 13.048031 M
+Avg dhrystoneOptimized: 65.482456 M
+Avg whetstone: 2.702700 K
+Avg whetstoneOptimized: 5.000000 K
+Delta dhrystone: 14.294482 %
+Delta dhrystone: 103.728931 %
+Delta whetstone: -34.757419 %
+Delta whetstone optimized: -50.400762 %
+Avg delta: 0.082163 ; Next CPU value: 0.734194 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12820512 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12755102 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12755102 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12755102 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12787723 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 60975609 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 61728395 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64935064 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 40 sec.
+C Converted Double Precision Whetstones: 2500.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 22 sec.
+C Converted Double Precision Whetstones: 4545.5 MIPS
+Opened file: ./results/optimizer-run-0.734cpu.txt
+Avg dhrystone: 12.774708 M
+Avg dhrystoneOptimized: 63.168839 M
+Avg whetstone: 2.500000 K
+Avg whetstoneOptimized: 4.545500 K
+Delta dhrystone: 11.900309 %
+Delta dhrystone: 96.530811 %
+Delta whetstone: -39.650553 %
+Delta whetstone optimized: -54.909333 %
+Avg delta: 0.034678 ; Next CPU value: 0.721464 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12626262 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12594458 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12594458 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12626262 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12626262 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 61728395 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 1
+This machine benchmarks at 45871559 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 41 sec.
+C Converted Double Precision Whetstones: 2439.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 22 sec.
+C Converted Double Precision Whetstones: 4545.5 MIPS
+Opened file: ./results/optimizer-run-0.721cpu.txt
+Avg dhrystone: 12.613540 M
+Avg dhrystoneOptimized: 59.981529 M
+Avg whetstone: 2.439000 K
+Avg whetstoneOptimized: 4.545500 K
+Delta dhrystone: 10.488556 %
+Delta dhrystone: 86.614456 %
+Delta whetstone: -41.123079 %
+Delta whetstone optimized: -54.909333 %
+Avg delta: 0.002677 ; Next CPU value: 0.720498 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12594458 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12594458 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12626262 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12562814 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12626262 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 61728395 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 41 sec.
+C Converted Double Precision Whetstones: 2439.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 22 sec.
+C Converted Double Precision Whetstones: 4545.5 MIPS
+Opened file: ./results/optimizer-run-0.720cpu.txt
+Avg dhrystone: 12.600851 M
+Avg dhrystoneOptimized: 62.982647 M
+Avg whetstone: 2.439000 K
+Avg whetstoneOptimized: 4.545500 K
+Delta dhrystone: 10.377401 %
+Delta dhrystone: 95.951531 %
+Delta whetstone: -41.123079 %
+Delta whetstone optimized: -54.909333 %
+Avg delta: 0.025741 ; Next CPU value: 0.711225 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12500000 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12468827 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12531328 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 3
+This machine benchmarks at 12531328 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12468827 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 64102564 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 42 sec.
+C Converted Double Precision Whetstones: 2381.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 23 sec.
+C Converted Double Precision Whetstones: 4347.8 MIPS
+Opened file: ./results/optimizer-run-0.711cpu.txt
+Avg dhrystone: 12.500062 M
+Avg dhrystoneOptimized: 63.295196 M
+Avg whetstone: 2.381000 K
+Avg whetstoneOptimized: 4.347800 K
+Delta dhrystone: 9.494540 %
+Delta dhrystone: 96.923932 %
+Delta whetstone: -42.523186 %
+Delta whetstone optimized: -56.870486 %
+Avg delta: 0.017562 ; Next CPU value: 0.704980 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12406947 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 60975609 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 60240963 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 42 sec.
+C Converted Double Precision Whetstones: 2381.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 24 sec.
+C Converted Double Precision Whetstones: 4166.7 MIPS
+Opened file: ./results/optimizer-run-0.705cpu.txt
+Avg dhrystone: 12.431637 M
+Avg dhrystoneOptimized: 61.901542 M
+Avg whetstone: 2.381000 K
+Avg whetstoneOptimized: 4.166700 K
+Delta dhrystone: 8.895173 %
+Delta dhrystone: 92.587998 %
+Delta whetstone: -42.523186 %
+Delta whetstone optimized: -58.666971 %
+Avg delta: 0.000733 ; Next CPU value: 0.704722 
+
+
+test-machine
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 4
+This machine benchmarks at 12437810 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 60240963 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 62500000 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 63291139 dhrystones/second
+Dhrystone(1.1) time for 50000000 passes = 0
+This machine benchmarks at 60240963 dhrystones/second
+gcc whetstone.c -o whetstone -lm
+gcc -O whetstone.c -o whetstoneO -lm
+Running whetstone default
+
+Loops: 1000000, Iterations: 1, Duration: 42 sec.
+C Converted Double Precision Whetstones: 2381.0 MIPS
+Running whetstone with -O
+
+Loops: 1000000, Iterations: 1, Duration: 23 sec.
+C Converted Double Precision Whetstones: 4347.8 MIPS
+Opened file: ./results/optimizer-run-0.705cpu.txt
+Avg dhrystone: 12.437810 M
+Avg dhrystoneOptimized: 61.754613 M
+Avg whetstone: 2.381000 K
+Avg whetstoneOptimized: 4.347800 K
+Delta dhrystone: 8.949242 %
+Delta dhrystone: 92.130872 %
+Delta whetstone: -42.523186 %
+Delta whetstone optimized: -56.870486 %
+Avg delta: 0.004216 ; Next CPU value: 0.703236 

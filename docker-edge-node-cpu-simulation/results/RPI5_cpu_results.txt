@@ -1,0 +1,57 @@
+cc dhrystone.c -o dhrystone
+cc -O dhrystone.c -o dhrystoneO
+Running dhrystone default
+Dhrystone(1.1) time for 500000000 passes = 43
+This machine benchmarks at 11371389 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 43
+This machine benchmarks at 11444266 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 43
+This machine benchmarks at 11376564 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 43
+This machine benchmarks at 11449507 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 43
+This machine benchmarks at 11439029 dhrystones/second
+Running dhrystone with -O
+Dhrystone(1.1) time for 500000000 passes = 15
+This machine benchmarks at 32154340 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 15
+This machine benchmarks at 32133676 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 15
+This machine benchmarks at 32175032 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 15
+This machine benchmarks at 32133676 dhrystones/second
+Dhrystone(1.1) time for 500000000 passes = 15
+This machine benchmarks at 32113037 dhrystones/second
+make: Nothing to be done for 'all'.
+Running whetstone default
+
+Loops: 10000000, Iterations: 1, Duration: 241 sec.
+C Converted Double Precision Whetstones: 4149.4 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 242 sec.
+C Converted Double Precision Whetstones: 4132.2 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 240 sec.
+C Converted Double Precision Whetstones: 4166.7 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 242 sec.
+C Converted Double Precision Whetstones: 4132.2 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 242 sec.
+C Converted Double Precision Whetstones: 4132.2 MIPS
+Running whetstone with -O
+
+Loops: 10000000, Iterations: 1, Duration: 99 sec.
+C Converted Double Precision Whetstones: 10101.0 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 100 sec.
+C Converted Double Precision Whetstones: 10000.0 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 99 sec.
+C Converted Double Precision Whetstones: 10101.0 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 99 sec.
+C Converted Double Precision Whetstones: 10101.0 MIPS
+
+Loops: 10000000, Iterations: 1, Duration: 99 sec.
+C Converted Double Precision Whetstones: 10101.0 MIPS
