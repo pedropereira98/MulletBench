@@ -16,8 +16,8 @@ all:
     influx_port: 8086
     influx_version: 2.7
 
-    benchmark_client_version: v1.00
-    benchmark_orchestrator_version: v1.00
+    benchmark_client_version: v1.0
+    benchmark_orchestrator_version: v1.0
 
     monitoring_interval: 2sec
     final_monitoring_period_sec: 120

@@ -12,8 +12,8 @@ all:
     iotdb_version: 1.1.1
     align_by_device: true
     
-    benchmark_client_version: v1.00
-    benchmark_orchestrator_version: v1.00
+    benchmark_client_version: v1.0
+    benchmark_orchestrator_version: v1.0
 
     monitoring_interval: 2sec
 
