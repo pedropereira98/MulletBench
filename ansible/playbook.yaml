@@ -31,10 +31,6 @@
       register: py3ver
       when: ansible_distribution == "Ubuntu" and ansible_distribution_version >= "23"
 
-    - name: Debug
-      ansible.builtin.debug:
-        var: py3ver
-
     - name: remove EXTERNALLY-MANAGED if we're on Ubuntu 23 
       ansible.builtin.file:
         path: /usr/lib/python3.11/EXTERNALLY-MANAGED

@@ -63,7 +63,3 @@
     project_name: mulletbench-orchestrator
     state: present
   register: output
-
-- name: Print orchestrator output
-  ansible.builtin.debug:
-    msg: "{{ output }}"

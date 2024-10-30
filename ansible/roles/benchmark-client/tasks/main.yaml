@@ -145,9 +145,6 @@
     state: present
   register: output
 
-# - name: Print Client output
-  # ansible.builtin.debug:
-    # msg: "{{ output }}"
 
 # - name: Wait for instance to be ready
 #   ansible.builtin.wait_for:
