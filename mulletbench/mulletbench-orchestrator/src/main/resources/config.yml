@@ -1,0 +1,19 @@
+database: timescale
+monitoringInterval: 2
+resultsFolder: /tmp/mulletbench/results
+clientContainerBase: "mulletbench-"
+clients:
+    - name: client1
+      address: localhost
+      type: insert
+      target: cloud1
+      monitor: false
+stages:
+  - stage: 1
+    clients:
+      - client1
+nodes:
+  - name: cloud1
+    layer: CLOUD
+    address: localhost
+    monitor: false

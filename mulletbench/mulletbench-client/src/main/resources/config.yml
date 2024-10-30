@@ -1,0 +1,33 @@
+dataFile: "data_1600_accel_watch.txt"
+target: "timescale"
+numWorkers: 1
+type: INSERT #INSERT or QUERY
+insertion:
+  workerSectionSize: 32000
+  batchSize: 100
+  rate: 32 #batches per second
+query:
+  count: 100 #total queries submitted per worker
+  rate: 10 #queries per second
+  aggChance: 33
+  filterChance: 33
+  downsampleChance: 33
+influx:
+  serverURL: "http://192.168.112.45:8086"
+  token: "mytoken"
+  orgID: "b997f41896a038dc"
+  bucket: "mybucket"
+  blocking: true
+  bufferSize: 40000
+iotdb:
+  host: "192.168.112.45"
+  port: "6667"
+  username: "root"
+  password: "root"
+  devicePath: "root.watch.accel.d1"
+timescale:
+  host: "localhost"
+  port: "5432"
+  username: "postgres"
+  password: ""
+  database: "mulletbench"
