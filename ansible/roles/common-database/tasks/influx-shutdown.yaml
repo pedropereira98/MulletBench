@@ -10,13 +10,13 @@
   when: dir.stat.isdir is defined and dir.stat.isdir
 
 - name: Shutdown InfluxDB instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/influxdb/{{ inventory_hostname }}
     state: absent
   when: dir.stat.isdir is defined and dir.stat.isdir and instance_dir.stat.isdir is defined and instance_dir.stat.isdir and not 'hard-reset' in ansible_run_tags
 
 - name: Shutdown InfluxDB instance and remove volumes
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/influxdb/{{ inventory_hostname }}
     remove_volumes: true
     state: absent

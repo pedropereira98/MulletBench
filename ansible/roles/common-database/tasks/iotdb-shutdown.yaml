@@ -10,7 +10,7 @@
   when: dir.stat.isdir is defined and dir.stat.isdir
 
 - name: Shutdown Apache IoTDB instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/iotdb/{{ inventory_hostname }}
     state: absent
   when: dir.stat.isdir is defined and dir.stat.isdir and instance_dir.stat.isdir is defined and instance_dir.stat.isdir

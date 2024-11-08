@@ -26,7 +26,7 @@
     mode: '0500'
 
 - name: Launch InfluxDB instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/influxdb/{{ inventory_hostname }}/
     state: present
     remove_orphans: true
@@ -38,6 +38,6 @@
     delay: 2
 
 # - name: Restart container (fixes broken resource monitoring)
-#   community.docker.docker_compose:
+#   community.docker.docker_compose_v2:
 #     project_src: /tmp/influxdb/{{ inventory_hostname }}/
 #     restarted: true

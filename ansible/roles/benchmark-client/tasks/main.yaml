@@ -139,7 +139,7 @@
     mode: '0500'
 
 - name: Launch MulletBench Client instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/mulletbench/{{ inventory_hostname }}
     project_name: mulletbench-client-{{ inventory_hostname }}
     state: present

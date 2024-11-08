@@ -39,7 +39,7 @@
     mode: '0500'
 
 - name: Launch Apache IoTDB instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/iotdb/{{ inventory_hostname }}/
     state: present
     remove_orphans: true
@@ -59,6 +59,6 @@
   when: max_retention is defined
 
 # - name: Restart container (fixes broken resource monitoring)
-#   community.docker.docker_compose:
+#   community.docker.docker_compose_v2:
 #     project_src: /tmp/iotdb/{{ inventory_hostname }}/
 #     restarted: true

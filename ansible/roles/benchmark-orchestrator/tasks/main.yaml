@@ -58,7 +58,7 @@
     mode: '1777'
 
 - name: Launch MulletBench Orchestrator instance
-  community.docker.docker_compose:
+  community.docker.docker_compose_v2:
     project_src: /tmp/mulletbench-orch/
     project_name: mulletbench-orchestrator
     state: present
