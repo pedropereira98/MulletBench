@@ -29,6 +29,9 @@ query:
   {% if filter_z_score is defined -%}
   filterZScore: {{ filter_z_score }} 
   {% endif -%}
+  {% if query_seed is defined -%}
+  querySeed: {{ query_seed }} 
+  {% endif -%}
 
 {% endif %}
 
@@ -43,6 +46,9 @@ influx:
   {% endif -%}
   {% if read_timeout is defined -%}
   readTimeout: {{ read_timeout }} 
+  {% endif -%}
+  {% if gzip is defined -%}
+  gzip: {{ gzip }}
   {% endif -%}
 {% endif %}
 

@@ -19,7 +19,10 @@ services:
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN={{ influx_token }}
       {% if max_retention is defined %}- DOCKER_INFLUXDB_INIT_RETENTION={{ max_retention }} # The duration the system's initial bucket should retain data {%- endif -%}
       
-      #- INFLUXD_STORAGE_WAL_FSYNC_DELAY=15ms #example envvar for influxdb config
+    #   - INFLUXD_STORAGE_WAL_FSYNC_DELAY=3s #example envvar for influxdb config
+    #   - INFLUXD_STORAGE_WRITE_TIMEOUT=480s
+    #   - storage-max-index-log-file-size
+      - INFLUXD_STORAGE_CACHE_MAX_MEMORY_SIZE=4g
     ports:
       - "{{ influx_port }}:8086"
     {% if limited_resources -%}

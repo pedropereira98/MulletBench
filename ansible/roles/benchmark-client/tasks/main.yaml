@@ -18,6 +18,17 @@
     - pmlogger
   when: monitor
 
+- name: Disable and stop pmcd and pmlogger services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  with_items:
+    - pmcd
+    - pmlogger
+  when: not monitor
+
 - name: Ensure /tmp/mulletbench dir exists
   ansible.builtin.file:
     path: /tmp/mulletbench

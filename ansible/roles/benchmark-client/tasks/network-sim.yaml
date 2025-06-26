@@ -1,5 +1,28 @@
 - name: Setup network simulation
   block:
+
+    - name: Get iflink of container
+      ansible.builtin.shell:
+        "docker exec -it mulletbench-{{ inventory_hostname }} cat /sys/class/net/eth0/iflink"
+      register: container_iflink
+
+    - name: Get veth path
+      ansible.builtin.shell:
+        "grep -l {{ container_iflink.stdout }} /sys/class/net/veth*/ifindex"
+      register: veth_path
+
+    - debug:
+        var: veth_path
+
+    - name: Extract veth interface from string
+      ansible.builtin.set_fact:
+        veth_interface: "{{ veth_path.stdout | regex_replace('/sys/class/net/(veth[^\\s/]+)/ifindex', '\\1') }}"
+
+    - name: Show extracted veth interface
+      ansible.builtin.debug:
+        msg: "The extracted veth interface is {{ veth_interface }}"
+
+
     - debug:
         var: network_sim
 
@@ -17,15 +40,39 @@
 
     - name: Remove any previous tcconfig settings
       ansible.builtin.shell:
-        "tcdel mulletbench-{{ inventory_hostname }} --docker -a"
+        "tcdel {{ veth_interface }} -a"
       register: remove_result
       failed_when: "remove_result.rc != 0 and 'container not found' not in remove_result.stderr"
       become: true
+      throttle: 1
 
-    - debug:
-        msg: "{{ network_sim != None }}"
+    - name: Set bandwidth limits
+      throttle: 1
+      block:
+
+        - debug:
+            msg: "{{ network_sim != None }}"
+
+    
+        - name: Set incoming bandwidth limits
+          ansible.builtin.shell:
+            "tcset {{ veth_interface  }} --direction incoming --rate {{ network_sim.bandwidth }} --add"
+          become: true
+          register: tcset_output_incoming
+
+        - name: Set outgoing bandwidth limits
+          ansible.builtin.shell:
+            "tcset {{ veth_interface  }} --direction outgoing --rate {{ network_sim.bandwidth }} --add"
+          become: true
+          register: tcset_output_outgoing
+      when: network_sim.bandwidth is defined and network_sim.bandwidth != None
+
+    - name: Ensure network_sim.latency is defined as a list
+      set_fact:
+        network_sim: "{{ network_sim | default({}) | combine({'latency': network_sim.latency | default([])}) }}"
+
 
     - name: Setup simulation for target
       ansible.builtin.include_tasks:
         "network-sim-set.yaml"
-      loop: "{{ network_sim if network_sim is iterable and network_sim is not string else [] }}"
+      loop: "{{ network_sim.latency | default([]) if network_sim.latency is iterable and network_sim.latency is not string else [] }}"

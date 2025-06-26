@@ -12,6 +12,9 @@ clients:
     type: {{ hostvars[host]['type'] }}
     target: {{ hostvars[host]['target'] }}
     monitor: {{ hostvars[host]['monitor'] }}
+{% if hostvars[host]['query_seed'] is defined %}
+    querySeed: {{ hostvars[host]['query_seed'] }}
+{% endif %}
 {% endfor -%}
 stages:
 {% for stage in groups['benchmark_clients'] | map('extract', hostvars, 'stage') | unique | sort %}

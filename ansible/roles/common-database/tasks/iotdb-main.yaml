@@ -49,6 +49,17 @@
     port: "{{ iotdb_port }}"
     state: started
     delay: 2
+  register: wait_result
+
+- name: Check if IoTDB is ready
+  debug:
+    msg: "{{ 'IoTDB is ready' if wait_result.state == 'started' else 'IoTDB is not ready' }}"
+
+- name: Wait for instance to be ready (log file)
+  ansible.builtin.wait_for:
+    path: /home/iotdb/{{ inventory_hostname }}/logs/log_datanode_info.log
+    search_regex: "IoTDB DataNode is set up successfully"
+    delay: 2
 
 - name: Set retention period
   community.docker.docker_container_exec:
