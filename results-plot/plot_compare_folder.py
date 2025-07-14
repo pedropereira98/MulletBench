@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 import json
 
 epoch = datetime.utcfromtimestamp(0)
-images_folder = "results/resource_det_insert/images/"
-data_folder = "results/resource_det_insert/"
+images_folder = "results/resource_det_query/downsampling/images/"
+data_folder = "results/resource_det_query/downsampling/"
 metrics_folder = "metrics/"
 monitoring_folder = "monitoring/"
 os.makedirs(images_folder, exist_ok=True)
@@ -270,7 +270,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     for label, df in client_dfs.items():
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
-            resample_time = 5.0
+            resample_time = 10.0
             insert_amount = query_groups.get_group("INSERT")['amount']
             insert_throughput = insert_amount.resample(f"{resample_time}s").sum().map(lambda el: el/resample_time).map(lambda el: (el/runs_per_client[label]) if runs_per_client else el)
             insert_throughput.index = insert_throughput.index.map(lambda el: seconds_millis(el) / 60)
@@ -293,7 +293,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
             insert_latency =  query_groups.get_group("INSERT")['latency']
-            latency_mean = insert_latency.resample("5s").mean()
+            latency_mean = insert_latency.resample("10s").mean()
             latency_mean.index = latency_mean.index.map(lambda el : seconds_millis(el) / 60)
             ax.plot(latency_mean, label=label, linestyle=line_styles_copy.pop(0))
             

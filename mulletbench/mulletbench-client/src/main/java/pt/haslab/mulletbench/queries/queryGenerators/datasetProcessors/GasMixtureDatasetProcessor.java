@@ -1,4 +1,4 @@
-package pt.haslab.mulletbench.queries.queryGenerators;
+package pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -8,17 +8,17 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import pt.haslab.mulletbench.ResourceAccess;
 import pt.haslab.mulletbench.queries.queryBuilders.QueryBuilder;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
 import pt.haslab.mulletbench.utils.ClientOptions;
-import pt.haslab.mulletbench.ResourceAccess;
 
-public class GasMixtureQueryGenerator extends FloatsQueryGenerator {
+public class GasMixtureDatasetProcessor extends FloatsDatasetProcessor {
 
     private static final Logger logger = LogManager.getLogger();
 
-    public GasMixtureQueryGenerator(QueryBuilder builder, ClientOptions options, TimeController tc) {
-        super(builder, options, 6, tc);
+    public GasMixtureDatasetProcessor(TimeController tc) {
+        super(tc, 6);
         this.columns = List.of("co", "ethylene", "s1", "s2", "s3", "s4");
     }
 
@@ -49,4 +49,5 @@ public class GasMixtureQueryGenerator extends FloatsQueryGenerator {
         processFinish(count);
 
     }
+    
 }

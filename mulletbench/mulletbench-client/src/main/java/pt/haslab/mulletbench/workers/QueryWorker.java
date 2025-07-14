@@ -1,17 +1,23 @@
 package pt.haslab.mulletbench.workers;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import pt.haslab.mulletbench.OperationType;
 import pt.haslab.mulletbench.TimeProvider;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
 import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.stats.Stats;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class QueryWorker extends Worker {
 
@@ -21,7 +27,15 @@ public abstract class QueryWorker extends Worker {
 
     private static final Logger logger = LogManager.getLogger();
 
-    private void measuredQuery(Query query){
+    private final String queryFile;
+    private final PrintWriter queryWriter;
+
+    private void measuredQuery(Query query) {
+
+        // print current date and time, timestamp and query to file
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        queryWriter.println(date + " " + TimeProvider.getNanoTime() + " " + query.queryString());
+
         long before = TimeProvider.getNanoTime();
         logger.info("Starting query");
         logger.debug(query);
@@ -31,15 +45,20 @@ public abstract class QueryWorker extends Worker {
             // TODO check results?
 
             stats.registerOperation(before, after, results.size(), query.type());
-        } catch (FailedQueryException e){
+        } catch (FailedQueryException e) {
             long after = TimeProvider.getNanoTime();
             logger.error(e.getMessage());
-            OperationType failedType = switch (query.type()){
-                case AGGREGATION -> OperationType.FAILED_AGGREGATION;
-                case FILTER -> OperationType.FAILED_FILTER;
-                case DOWNSAMPLING -> OperationType.FAILED_DOWNSAMPLING;
-                case OUTLIER_FILTER -> OperationType.FAILED_OUTLIER_FILTER;
-                default -> throw new IllegalStateException("Unexpected value: " + query.type());
+            OperationType failedType = switch (query.type()) {
+                case AGGREGATION ->
+                    OperationType.FAILED_AGGREGATION;
+                case FILTER ->
+                    OperationType.FAILED_FILTER;
+                case DOWNSAMPLING ->
+                    OperationType.FAILED_DOWNSAMPLING;
+                case OUTLIER_FILTER ->
+                    OperationType.FAILED_OUTLIER_FILTER;
+                default ->
+                    throw new IllegalStateException("Unexpected value: " + query.type());
             };
             stats.registerOperation(before, after, 0, failedType);
         }
@@ -56,28 +75,33 @@ public abstract class QueryWorker extends Worker {
         // Query de agregação (média) por hora, dia, mes
         // Query de downsampling (média) por minuto, hora, dia, mes
         // query de filtragem (outliers)
-
         logger.debug("Doing " + this.count + " queries with rate " + this.rateInterval + "ms");
         int i = 0;
-        while(i < this.count){
+        while (i < this.count) {
             // if pool has too many queued tasks stop adding more tasks
-            if(!Worker.hold){
+            if (!Worker.hold) {
                 Query query = getQuery(i++);
                 logger.info("Starting query");
-                futures.add(CompletableFuture.runAsync(() ->
-                    measuredQuery(query)
+                futures.add(CompletableFuture.runAsync(()
+                        -> measuredQuery(query)
                 ));
             }
 
-            try{
+            try {
                 Thread.sleep(this.rateInterval);
             } catch (InterruptedException e) {
                 logger.error("Error while sleeping", e);
             }
         }
 
-        for(CompletableFuture<?> future : futures){
+        for (CompletableFuture<?> future : futures) {
             future.join();
+        }
+
+        logger.info("Finished queries");
+        try {
+            queryWriter.close();
+        } catch (Exception e) {
         }
     }
 
@@ -86,5 +110,18 @@ public abstract class QueryWorker extends Worker {
         this.futures = new LinkedList<>();
         this.rateInterval = (int) (1000 / rate);
         this.count = count;
+
+        // create queries file
+        queryFile = "/home/app/output/queries" + TimeProvider.getNanoTime() + ".txt";
+        try {
+            new File(queryFile).createNewFile();
+        } catch (Exception e) {
+            logger.error("Error creating query file", e);
+        }
+        try {
+            queryWriter = new PrintWriter(queryFile);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

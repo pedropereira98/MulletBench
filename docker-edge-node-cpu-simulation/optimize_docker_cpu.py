@@ -1,3 +1,5 @@
+
+from json import load
 import sys
 import os
 import yaml
@@ -142,7 +144,7 @@ def parse_disk_io_limts(filepath: str) -> dict:
 
     return limits
 
-def execute_test_run(config: dict, server: dict, cpu_value: float):
+def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_value: float):
     """ Execute a test run with the given configuration and server settings.
 
     Args:
@@ -156,10 +158,10 @@ def execute_test_run(config: dict, server: dict, cpu_value: float):
     with open("test_config.yaml", "w") as test_config_file:
         yaml.dump(config, test_config_file, default_flow_style=False, allow_unicode=True)
 
-
     print("-- Performing Cleanup --")
 
-    subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
+    if config_type != WorkloadType.QUERY:
+        subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
 
     subprocess.call("docker rm --force mulletbench-orchestrator", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)  
 
@@ -169,34 +171,34 @@ def execute_test_run(config: dict, server: dict, cpu_value: float):
     print("-- Orchestrator Logs --")
     os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}.txt")
 
-def compare_results(reference_results: list[str], target_results: list[str], config_type = WorkloadType.INSERTION) -> float:
-    """ Compare the target results with the reference results to determine the difference in performance.
+def compare_results(reference_results: list[str], adjusted_results: list[str], config_type = WorkloadType.INSERTION) -> float:
+    """ Compare the adjusted results with the reference results to determine the difference in performance.
 
     Args:
         reference_results (list[str]): Results of the reference run
-        target_results (list[str]): Results of the last adjusted test run
+        adjusted_results (list[str]): Results of the last adjusted test run
         config_type (_type_, optional): The type of the test run. Defaults to WorkloadType.INSERTION.
 
     Returns:
-        float: The difference between the target and reference results.
+        float: The difference between the adjusted and reference results.
     """
 
     if config_type == WorkloadType.INSERTION: # INSERTION workload
-        diff = (target_results[INSERT_RATE] / reference_results[INSERT_RATE]) - 1
+        diff = (adjusted_results[INSERT_RATE] / reference_results[INSERT_RATE]) - 1
     elif config_type == WorkloadType.QUERY: # QUERY workload
-        diff = (target_results[QUERY_RATE] / reference_results[QUERY_RATE]) - 1
+        diff = (adjusted_results[QUERY_RATE] / reference_results[QUERY_RATE]) - 1
     else: # MIXED workload
-        diff = (target_results[INSERT_RATE] / reference_results[INSERT_RATE] + target_results[QUERY_RATE] / reference_results[QUERY_RATE]) * 0.5 - 1
+        diff = (adjusted_results[INSERT_RATE] / reference_results[INSERT_RATE] + adjusted_results[QUERY_RATE] / reference_results[QUERY_RATE]) * 0.5 - 1
 
     return round(diff, MAX_DECIMAL_PLACES)
 
-def calculate_next_value(current_cpu_value: float, reference_results: dict, target_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> float:
-    """ Calculate the next CPU value based on the current CPU value and the difference between reference and target results.
+def calculate_next_value(current_cpu_value: float, reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> float:
+    """ Calculate the next CPU value based on the current CPU value and the difference between reference and adjusted results.
 
     Args:
         current_cpu_value (float): Current CPU value to adjust
         reference_results (dict): Results of the reference run
-        target_results (dict): Results of the last adjusted test run
+        adjusted_results (dict): Results of the last adjusted test run
         prev_diff (float, optional): Difference between the runs on the last adjustment. Defaults to -1.
         config_type (_type_, optional): The type of the test run. Defaults to WorkloadType.INSERTION.
 
@@ -206,12 +208,15 @@ def calculate_next_value(current_cpu_value: float, reference_results: dict, targ
 
     divisor = 1
 
-    diff = compare_results(reference_results, target_results)
+    diff = compare_results(reference_results, adjusted_results, config_type)
 
-    if abs(diff) > 0.2:
+    if abs(diff) > 0.2 and abs(diff * 1.5) < 0.8:
         diff *= 1.5
     elif prev_diff != -1 and prev_diff * diff < 0:
         divisor *= 2
+
+    if abs(diff) >= 0.8:
+        diff = 0.8 if diff > 0 else -0.8
 
     return round(current_cpu_value - (diff * current_cpu_value) / divisor, MAX_DECIMAL_PLACES)
 
@@ -255,6 +260,7 @@ def main():
         os.makedirs(OUTPUT_PATH)
 
     loaded_config = load_config(args.benchmark_config)
+    print(loaded_config["type"])
 
     # load edge servers from config
     edge_servers: dict = loaded_config["config"]['edgeservers']['hosts']
@@ -291,7 +297,7 @@ def main():
 
         print(f"\n\n\n\nTest Run with {cpu_value = }\n")
 
-        execute_test_run(loaded_config["config"], server, cpu_value)
+        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value)
 
         run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{cpu_value}.txt")
 
@@ -311,3 +317,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

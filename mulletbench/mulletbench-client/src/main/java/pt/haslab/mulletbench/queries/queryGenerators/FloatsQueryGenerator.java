@@ -12,13 +12,14 @@ import pt.haslab.mulletbench.OperationType;
 import pt.haslab.mulletbench.queries.AggregationFunction;
 import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.queries.queryBuilders.QueryBuilder;
+import pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors.FloatsDatasetProcessor;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
 import pt.haslab.mulletbench.utils.ClientOptions;
 
 
 // For datasets with float values
 // To be extended by class with specific columns and parsing
-public abstract class FloatsQueryGenerator extends QueryGenerator {
+public class FloatsQueryGenerator extends QueryGenerator {
     private static final Logger logger = LogManager.getLogger();
 
 
@@ -34,22 +35,15 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
     private final float[] maxs;
 
 
-    public FloatsQueryGenerator(QueryBuilder builder, ClientOptions options, int numFields, TimeController tc) {
-        super(builder, options, tc);
+    public FloatsQueryGenerator(QueryBuilder builder, ClientOptions options, TimeController tc, FloatsDatasetProcessor datasetProcessor) {
+        super(builder, options, tc, datasetProcessor);
 
-        sums = new double[numFields];
-        squaredSums = new double[numFields];
-        averages = new double[numFields];
-        standardDeviations = new double[numFields];
-        mins = new float[numFields];
-        maxs = new float[numFields];
-
-        for (int i = 0; i < numFields; i++) {
-            sums[i] = 0;
-            squaredSums[i] = 0;
-            mins[i] = Float.MAX_VALUE;
-            maxs[i] = Float.MAX_VALUE * -1;
-        }
+        sums = datasetProcessor.getSums();
+        squaredSums = datasetProcessor.getSquaredSums();
+        averages = datasetProcessor.getAverages();
+        standardDeviations = datasetProcessor.getStandardDeviations();
+        mins = datasetProcessor.getMins();
+        maxs = datasetProcessor.getMaxs();
     }
 
 
@@ -71,19 +65,11 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
 
     // Aggregates values of random field in a time range between 5 seconds and 20 minutes (depending on range size)
     // into a value (with random aggregation function)
+    @Override
     protected Query generateAggregation(){
         String field = getRandomColumn(); //get random field from columns
 
-        // queryRange is at least 5 seconds and at most 20 minutes
-        Duration minimumRange = Duration.ofSeconds(5);
-        Duration maximumRange = Duration.ofMinutes(20);
-        Duration queryRange = Duration.ofMillis(getRangeSize()/4);
-
-        if (queryRange.compareTo(minimumRange) < 0){
-            queryRange = minimumRange;
-        } else if (queryRange.compareTo(maximumRange) > 0){
-            queryRange = maximumRange;
-        }
+        Duration queryRange = getRandomRange(aggMinPercent, aggMaxPercent, Duration.ofSeconds(5), Duration.ofMinutes(20));
 
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
@@ -98,6 +84,7 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
     }
 
     // Filters values for a field in time ranges between 5 seconds and 20 minutes (depending on the range of data)
+    @Override
     protected Query generateFilter(){
         String field = getRandomColumn(); //get random field from columns
         int fieldIdx = columns.indexOf(field);
@@ -131,20 +118,12 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
     }
 
     // Finds extreme values for a field in time ranges between 5 seconds and 20 minutes (depending on the range of data)
+    @Override
     protected Query generateOutlierFilter(){
         String field = getRandomColumn(); //get random field from columns
         int fieldIdx = columns.indexOf(field);
 
-        // queryRange is at least 5 seconds and at most 20 minutes
-        Duration minimumRange = Duration.ofSeconds(5);
-        Duration maximumRange = Duration.ofMinutes(20);
-        Duration queryRange = Duration.ofMillis(getRangeSize()/4);
-
-        if (queryRange.compareTo(minimumRange) < 0){
-            queryRange = minimumRange;
-        } else if (queryRange.compareTo(maximumRange) > 0){
-            queryRange = maximumRange;
-        }
+        Duration queryRange = getRandomRange(outlierMinPercent, outlierMaxPercent, Duration.ofSeconds(5), Duration.ofMinutes(20));
 
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
@@ -183,17 +162,8 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
             default -> throw new IllegalStateException("Unexpected value: " + unit);
         };
 
-        // queryRange is at least 5 seconds and at most 20 minutes
-        Duration minimumRange = Duration.ofMinutes(1);
-        Duration maximumRange = Duration.ofMinutes(120);
-        Duration queryRange = Duration.ofMillis(getRangeSize()/4);
 
-        if (queryRange.compareTo(minimumRange) < 0){
-            queryRange = minimumRange;
-        } else if (queryRange.compareTo(maximumRange) > 0){
-            queryRange = maximumRange;
-        }
-
+        Duration queryRange = getRandomRange(downsampleMinPercent, downsampleMaxPercent, Duration.ofMinutes(1), Duration.ofMinutes(120));
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
 
@@ -224,30 +194,19 @@ public abstract class FloatsQueryGenerator extends QueryGenerator {
         }
     }
 
-    protected void processValue(Float value, int column){
-        sums[column] += value;
-        squaredSums[column] += value * value;
-        maxs[column] = Math.max(maxs[column], value);
-        mins[column] = Math.min(mins[column], value);
+    @Override
+    public Query getFirstRecordQuery() {
+        builder.reset();
+        Instant start = Instant.ofEpochMilli(0L);
+
+        return new Query(builder.selectFrom(this.getRandomColumn(), from).rangeAfter(start).sort(true).first().query(), OperationType.AGGREGATION);
     }
 
-    protected void processFinish(int count){
-        // use sum, squaredSums and count to calculate average and std dev. for each column
-        for(int i = 0; i < columns.size(); i++){
-            averages[i] = sums[i]/count;
-            standardDeviations[i] = Math.sqrt(squaredSums[i]/count - averages[i]*averages[i]);
-        }
+    @Override
+    public Query getLastRecordQuery() {
+        builder.reset();
+        Instant start = Instant.ofEpochMilli(0L);
 
-        logger.debug("Processed " + count + " lines");
-
-        for(String column : columns){
-            logger.debug("Column " + column + " average: " + averages[columns.indexOf(column)]);
-            logger.debug("Column " + column + " standard deviation: " + standardDeviations[columns.indexOf(column)]);
-            logger.debug("Column " + column + " min: " + mins[columns.indexOf(column)]);
-            logger.debug("Column " + column + " max: " + maxs[columns.indexOf(column)]);
-        }
-
-        timeController.processFinish(logger);
-
+        return new Query(builder.selectFrom(this.getRandomColumn(), from).rangeAfter(start).sort(false).first().query(), OperationType.AGGREGATION);
     }
 }

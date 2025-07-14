@@ -30,6 +30,11 @@ public abstract class QueryBuilder {
 
     public abstract void reset();
 
+    // sort by time
+    public abstract QueryBuilder sort(boolean ascending);
+
+    public abstract QueryBuilder first();
+
     protected abstract String parseAggregation(AggregationFunction agg);
 
     protected String parseChronoUnit(ChronoUnit unit){

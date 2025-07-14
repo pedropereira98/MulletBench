@@ -142,4 +142,21 @@ public class IoTDBQueryBuilder extends QueryBuilder {
         this.select = "";
     }
 
+    @Override
+    public QueryBuilder sort(boolean ascending) {
+        String order = ascending ? "asc" : "desc";
+        if(this.inWhere){
+            this.query.append(String.format(" order by time %s", order));
+        } else {
+            this.query.append(String.format(" where order by time %s", order));
+        }
+        return this;
+    }
+
+    @Override
+    public QueryBuilder first() {
+        this.query.append(" limit 1");
+        return this;    
+    }
+
 }

@@ -30,7 +30,7 @@ public class OrchestratorOptions {
     }
 
     public static OrchestratorOptions load() throws FileNotFoundException, IOException{
-        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yaml");
+        Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
 
         return loadWithReader(configFileReader);
     }
@@ -39,6 +39,15 @@ public class OrchestratorOptions {
         Reader configFileReader = ResourceAccess.getFileBufferedReader("/config/" + filePath, OrchestratorOptions.class);
 
         return loadWithReader(configFileReader);
+    }
+
+    public static void main(String[] args) {
+        try {
+            OrchestratorOptions options = OrchestratorOptions.load();
+            System.out.println(options.clients);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }

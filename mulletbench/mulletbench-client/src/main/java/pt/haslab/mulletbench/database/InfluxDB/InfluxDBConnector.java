@@ -5,17 +5,21 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.influxdb.client.*;
-import com.influxdb.exceptions.InfluxException;
-import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.InfluxDBClientOptions;
+import com.influxdb.client.QueryApi;
+import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.WriteParameters;
+import com.influxdb.exceptions.InfluxException;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 
+import okhttp3.OkHttpClient;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
 import pt.haslab.mulletbench.utils.InfluxDBOptions;
@@ -65,7 +69,11 @@ public class InfluxDBConnector implements DatabaseConnector {
                 List<FluxRecord> records = fluxTable.getRecords();
                 for (final FluxRecord fluxRecord: records){
                     logger.trace(fluxRecord.getTime() + ": " + fluxRecord.getValueByKey("_value"));
-                    resultStrings.add(fluxRecord.toString());
+                    StringBuilder sb = new StringBuilder();
+                    for (String key : fluxRecord.getValues().keySet()) {
+                        sb.append(key).append("=").append(fluxRecord.getValueByKey(key)).append(" ");
+                    }
+                    resultStrings.add(sb.toString().trim());
                 }
             }
 
@@ -82,7 +90,7 @@ public class InfluxDBConnector implements DatabaseConnector {
 
 
     //TODO maybe builder pattern for setting parameters
-    public InfluxDBConnector(String serverURL, char[] token, String orgID, String bucket, int writeTimeout, int readTimeout, String dataset) throws ClassNotFoundException {
+    public InfluxDBConnector(String serverURL, char[] token, String orgID, String bucket, int writeTimeout, int readTimeout, boolean gzip, String dataset) throws ClassNotFoundException {
 
         this.writeParameters = new WriteParameters(bucket, orgID, WritePrecision.NS);
 
@@ -99,6 +107,14 @@ public class InfluxDBConnector implements DatabaseConnector {
             .build();
 
         this.influxDBClient = InfluxDBClientFactory.create(options);
+        if(gzip){
+            this.influxDBClient.enableGzip();
+        }
+        else{
+            this.influxDBClient.disableGzip();
+        }
+        logger.info(this.influxDBClient.isGzipEnabled() ? "Gzip enabled" : "Gzip disabled");
+
         this.queryAPI = influxDBClient.getQueryApi();
 
         this.writeAPIBlocking = influxDBClient.getWriteApiBlocking();
@@ -113,6 +129,6 @@ public class InfluxDBConnector implements DatabaseConnector {
     }
 
     public InfluxDBConnector(InfluxDBOptions options, InsertionOptions insertionOptions, String dataset) throws ClassNotFoundException {
-        this(options.serverURL, options.token.toCharArray(), options.orgID, options.bucket, options.writeTimeout, options.readTimeout, dataset);
+        this(options.serverURL, options.token.toCharArray(), options.orgID, options.bucket, options.writeTimeout, options.readTimeout, options.gzip, dataset);
     }
 }

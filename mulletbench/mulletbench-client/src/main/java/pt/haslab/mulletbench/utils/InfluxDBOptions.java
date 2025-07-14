@@ -7,6 +7,7 @@ public class InfluxDBOptions {
     public String bucket;
     public int writeTimeout = 10; //write timeout in seconds
     public int readTimeout = 10; //read timeout in seconds
+    public boolean gzip = true; //enable gzip compression
 
     public InfluxDBOptions() {
     }

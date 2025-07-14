@@ -1,12 +1,12 @@
 package pt.haslab.mulletbench.stats;
 
-import pt.haslab.mulletbench.OperationType;
-
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+
+import pt.haslab.mulletbench.OperationType;
 
 public abstract class Stats implements Serializable {
 
@@ -22,6 +22,7 @@ public abstract class Stats implements Serializable {
 
     public void registerOperation(long before, long after, int size, OperationType type){
         StatsEntry e = new StatsEntry(before, after, size, type);
+        System.out.println("Registering operation: " + e.toCSV());
         synchronized(operations){
             operations.add(e);
         }

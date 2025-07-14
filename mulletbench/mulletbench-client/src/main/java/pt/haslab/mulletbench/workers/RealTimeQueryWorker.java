@@ -17,6 +17,7 @@ public class RealTimeQueryWorker extends QueryWorker {
     private RealTimeQueryWorker(DatabaseConnector connector, String clientId, float rate, int count, Stats stats, QueryGenerator queryGenerator, int workerNumber) {
         super(connector, stats, clientId, workerNumber, rate, count);
         this.queryGenerator = queryGenerator;
+        this.queryGenerator.incrementSeed(workerNumber);
     }
 
     public RealTimeQueryWorker(DatabaseConnector connector, ClientOptions options, Stats stats, QueryGenerator queryGenerator, int workerNumber) {

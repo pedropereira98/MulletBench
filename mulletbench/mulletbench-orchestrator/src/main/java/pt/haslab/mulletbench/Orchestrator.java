@@ -80,18 +80,40 @@ public class Orchestrator {
     private void displayResults(){
         // per node, per client, per worker?
 
+        System.out.println("\nSummary:\n\nTest Configuration:");
+
+        try {
+            Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
+        
+            BufferedReader bufferedReader = new BufferedReader(configFileReader);
+
+            String line;
+
+            while ((line = bufferedReader.readLine()) != null) {
+                System.out.println(line);
+            }
+            
+        } catch (IOException e) {
+            System.err.println("Error reading configuration file");
+        }
+
         int i = 1;
-        System.out.println("\nTest results:");
+        System.out.println("\n\nTest results:");
 
         System.out.println("\nStats per stage:");
         for(Stage stage: stages){
             List<Client> stageClients = clients.stream().filter(client -> stage.clients().contains(client.name)).toList();
 
             GlobalStats stageStats = new GlobalStats();
-            stageClients.forEach(Client::displayResults);
             stageClients.forEach(client -> stageStats.joinCollector(client.statsCollector));
-
+            
             System.out.println("\nStage " + i + " stats:");
+            stageClients.forEach((c) -> { 
+                System.out.println("\nClient " + c.name); 
+                c.displayResults();
+            });
+
+            System.out.println("\nJoined Stage " + i + " stats:");
             stageStats.printStats();
 
             i++;
@@ -214,7 +236,7 @@ public class Orchestrator {
             logger.info("All clients started");
             try{
                 for(ClientAddress ca: clientAddresses.values()){
-                    ca.joinThreads(stage);
+                    ca.joinThreads(stage);  
                 }
             } catch (InterruptedException e){
                 logger.error("Failed to join clientThreads");

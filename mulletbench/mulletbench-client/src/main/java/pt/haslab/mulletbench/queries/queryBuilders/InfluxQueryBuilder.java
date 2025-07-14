@@ -86,5 +86,15 @@ public class InfluxQueryBuilder extends QueryBuilder {
         return new String(from + query.toString());
     }
 
+    @Override
+    public QueryBuilder sort(boolean ascending) {
+        this.query.append(String.format(" |> sort(columns: [\"_time\"], desc: %s)", !ascending));
+        return this;
+    }
 
+    @Override
+    public QueryBuilder first() {
+        this.query.append(" |> first()");
+        return this;
+    }
 }

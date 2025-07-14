@@ -9,6 +9,7 @@ public class ClientOptions {
     public WorkloadType type;
     public String target;
     public boolean monitor;
+    public long querySeed = -1L;
 
     @Override
     public String toString() {
@@ -16,6 +17,8 @@ public class ClientOptions {
             "name='" + name + '\'' +
             ", address='" + address + '\'' +
             ", target='" + target + '\'' +
+            ", type=" + type +
+            ((type == WorkloadType.QUERY) ?", querySeed=" + ((querySeed == -1L) ?"\'not specified\'" :querySeed) :"") +
             '}';
     }
 }

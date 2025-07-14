@@ -45,6 +45,8 @@ public class InsertionWorker extends Worker {
 
     @Override
     public void run() {
+        long firstTimestamp = Long.MAX_VALUE;
+        long lastTimestamp = Long.MIN_VALUE;
         logger.info("Starting insertion worker");
 
         boolean finished = false;
@@ -65,6 +67,9 @@ public class InsertionWorker extends Worker {
 //                logger.debug("Time to read " + (after - before)/1_000_000L + "ms");
 
                 List<String> measurementsCopy = new LinkedList<>(measurements);
+
+                firstTimestamp = Math.min(firstTimestamp, datasetReader.getTimestamp(measurementsCopy.get(0)));
+                lastTimestamp = Math.max(lastTimestamp, datasetReader.getTimestamp(measurementsCopy.get(measurementsCopy.size() - 1)));
 
                 futures.add(CompletableFuture.runAsync(() ->
                     measuredWrite(measurementsCopy)
@@ -94,6 +99,8 @@ public class InsertionWorker extends Worker {
         for(CompletableFuture<?> future : futures){
             future.join();
         }
+        logger.info("First timestamp: " + firstTimestamp);
+        logger.info("Last timestamp: " + lastTimestamp);
     }
 
 //    With shared dataset

@@ -1,8 +1,8 @@
 package pt.haslab.mulletbench.queries.queryGenerators.timeController;
 
-import org.apache.logging.log4j.Logger;
-
 import java.time.Instant;
+
+import org.apache.logging.log4j.Logger;
 
 public abstract class TimeController {
     protected Instant startOfRange;
@@ -14,6 +14,25 @@ public abstract class TimeController {
     public void setStart(long timestamp){
         this.startTimestamp = timestamp;
         this.startOfRange = Instant.ofEpochMilli(startTimestamp);
+        rangeSize = endTimestamp - startTimestamp;
+    }
+
+    public void setStart(Instant start) {
+        this.startOfRange = start;
+        this.startTimestamp = start.toEpochMilli();
+        rangeSize = endTimestamp - startTimestamp;
+    }
+
+    public void setEnd(long timestamp){
+        this.endTimestamp = timestamp;
+        this.endOfRange = Instant.ofEpochMilli(endTimestamp);
+        rangeSize = endTimestamp - startTimestamp;
+    }
+
+    public void setEnd(Instant end) {
+        this.endOfRange = end;
+        this.endTimestamp = end.toEpochMilli();
+        rangeSize = endTimestamp - startTimestamp;
     }
 
     public abstract long getRangeSize();

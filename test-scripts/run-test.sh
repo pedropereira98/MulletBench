@@ -4,8 +4,9 @@ ANSIBLE_PATH=~/MulletBench/ansible
 NUMBER_RUNS=3
 STARTING_RUN=1
 SKIP_SHUTDOWN=false
-DEFAULT_HOSTS_FILE=hosts.yml
-while getopts "hn:s:t:a:crp:" flag; do
+DEFAULT_HOSTS_FILE=config.yml
+NAME=""
+while getopts "hn:s:t:a:i:cr" flag; do
     case $flag in
         h)
             echo "./run-test.sh [-h] [-n x] [-s x] [-a x] [-r] [-c] -t x"
@@ -14,6 +15,7 @@ while getopts "hn:s:t:a:crp:" flag; do
             echo "  -n       Specify number of runs (default = 3)"
             echo "  -s       Specify starting run number (default = 1)"
             echo "  -a       Specify path to ansible script directory"
+            echo "  -i       Test identifier"
             echo "  -r       Skip cleaning before and after each run"
             echo "  -c       Only clean"
             echo "  -t       Path to test to run (mandatory)"
@@ -23,19 +25,24 @@ while getopts "hn:s:t:a:crp:" flag; do
             echo "Changing number of runs to $OPTARG"
             NUMBER_RUNS=$OPTARG
             ;;
-        s) 
+        s)
             echo "Starting runs at $OPTARG"
             STARTING_RUN=$OPTARG
             ;;
-        a) 
+        a)
             echo "Using ansible path at $OPTARG"
             ANSIBLE_PATH=$OPTARG
             ;;
-        r)  
+        i)
+            echo "Test identifier $OPTARG"
+            NAME=$OPTARG
+            ;;
+        r)
             echo "Skipping cleaning"
             SKIP_SHUTDOWN=true
             ;;
-        c) echo "Only cleaning"
+        c)
+            echo "Only cleaning"
             SKIP_RUN=true
             ;;
         t)
@@ -43,10 +50,11 @@ while getopts "hn:s:t:a:crp:" flag; do
             TEST_PATH=$OPTARG
             ;;
         \?)
-            exit 
+            exit
             ;;
     esac
 done
+
 
 shift "$(( OPTIND - 1 ))"
 
@@ -60,11 +68,11 @@ LAST_RUN=$(expr $NUMBER_RUNS + $STARTING_RUN - 1)
 
 echo "$(date +%T) - Doing $NUMBER_RUNS runs of $TEST_PATH (starting at $STARTING_RUN)"
 
-if [ "${TEST_PATH#*.}" = "yml" ] || [ "${TEST_PATH#*.}" = "yaml" ]; then #if given test path includes file
-    FULL_HOSTS_PATH=~/MulletBench/results-plot/results/$TEST_PATH
+if [[ $TEST_PATH == *.yaml ]] || [[ $TEST_PATH == *.yml ]]; then #if given test path includes file
+    FULL_HOSTS_PATH=~/MulletBench/results/$TEST_PATH
     TEST_PATH=$(dirname $TEST_PATH)
 else
-    FULL_HOSTS_PATH=~/MulletBench/results-plot/results/$TEST_PATH/$DEFAULT_HOSTS_FILE
+    FULL_HOSTS_PATH=~/MulletBench/results/$TEST_PATH/$DEFAULT_HOSTS_FILE
 fi
 
 if ! test -f "$FULL_HOSTS_PATH"; then
@@ -75,6 +83,7 @@ fi
 current_run=$STARTING_RUN
 while [ $current_run -le $LAST_RUN ]
 do
+    echo "$SKIP_SHUTDOWN"
     if [ "$SKIP_SHUTDOWN" = false ]; then
         echo "$(date +%T) - Resetting config" && ansible-playbook $ANSIBLE_PATH/shutdown-playbook.yaml -i $FULL_HOSTS_PATH -t hard-reset
     else
@@ -134,7 +143,11 @@ do
 
     echo "$(date +%T) - Orchestrator is finished"
 
-    echo "$(date +%T) - Saving test results" && ./save-results.sh $TEST_ID results/$TEST_PATH/run-$current_run
+    if [ $current_run -eq $LAST_RUN ]; then
+        echo "$(date +%T) - Saving test results" && ./save-results.sh $TEST_ID $NAME run-$current_run $FULL_HOSTS_PATH
+    else
+        echo "$(date +%T) - Saving test results" && ./save-results.sh $TEST_ID $NAME run-$current_run
+    fi
 
     if [ "$SKIP_SHUTDOWN" = false ]; then
         echo "$(date +%T) - Resetting config" && ansible-playbook $ANSIBLE_PATH/shutdown-playbook.yaml -i $FULL_HOSTS_PATH -t hard-reset

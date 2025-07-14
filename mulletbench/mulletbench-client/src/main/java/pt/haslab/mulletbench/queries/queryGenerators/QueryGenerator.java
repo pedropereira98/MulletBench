@@ -1,12 +1,5 @@
 package pt.haslab.mulletbench.queries.queryGenerators;
 
-import pt.haslab.mulletbench.queries.AggregationFunction;
-import pt.haslab.mulletbench.queries.Query;
-import pt.haslab.mulletbench.queries.queryBuilders.QueryBuilder;
-import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
-import pt.haslab.mulletbench.utils.ClientOptions;
-
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,8 +8,17 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import pt.haslab.mulletbench.queries.AggregationFunction;
+import pt.haslab.mulletbench.queries.Query;
+import pt.haslab.mulletbench.queries.queryBuilders.QueryBuilder;
+import pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors.DatasetProcessor;
+import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
+import pt.haslab.mulletbench.utils.ClientOptions;
+
 public abstract class QueryGenerator {
     protected QueryBuilder builder;
+
+    protected DatasetProcessor datasetProcessor;
 
     protected String from; //bucket or devicePath
 
@@ -26,6 +28,13 @@ public abstract class QueryGenerator {
 
     protected Random random;
 
+    protected Instant startRange, endRange; // start and end of the range of the dataset
+    
+    protected float aggMinPercent, aggMaxPercent;
+    protected float filterMinPercent, filterMaxPercent;
+    protected float downsampleMinPercent, downsampleMaxPercent;
+    protected float outlierMinPercent, outlierMaxPercent;
+    
     // Probability weights for each query type
     int aggChance;
     int filterChance;
@@ -34,8 +43,11 @@ public abstract class QueryGenerator {
 
     boolean countOutlierFilter;
     float filterZScore;
+    long querySeed;
+    boolean useSeed;
 
-    QueryGenerator(QueryBuilder builder, ClientOptions options, TimeController tc){
+
+    QueryGenerator(QueryBuilder builder, ClientOptions options, TimeController tc, DatasetProcessor datasetProcessor) {
         this.builder = builder;
         this.from = switch (options.target) {
             case "influx" ->  options.influx.bucket;
@@ -43,7 +55,8 @@ public abstract class QueryGenerator {
             default -> throw new IllegalStateException("Unexpected value: " + options.target);
         };
         this.random = new Random();
-
+        
+        this.columns = datasetProcessor.getColumns();
         this.aggChance = options.query.aggChance;
         this.filterChance = options.query.filterChance + aggChance;
         this.downsampleChance = options.query.downsampleChance + filterChance;
@@ -51,13 +64,40 @@ public abstract class QueryGenerator {
         this.timeController = tc;
         this.countOutlierFilter = options.query.countOutlierFilter;
         this.filterZScore = options.query.filterZScore;
-
+        this.querySeed = options.query.querySeed;
+        this.useSeed = true;
+        if (this.querySeed == -1L) {
+            this.useSeed = false;
+        }
+        if (this.useSeed){
+            random.setSeed(querySeed);
+        }
+        this.aggMinPercent = options.query.aggMinPercent;
+        this.aggMaxPercent = options.query.aggMaxPercent;
+        this.filterMinPercent = options.query.filterMinPercent;
+        this.filterMaxPercent = options.query.filterMaxPercent;
+        this.downsampleMinPercent = options.query.downsampleMinPercent;
+        this.downsampleMaxPercent = options.query.downsampleMaxPercent;
+        this.outlierMinPercent = options.query.outlierMinPercent;
+        this.outlierMaxPercent = options.query.outlierMaxPercent;
+        // print percentages for debugging purposes
+        System.out.println("Aggregation Percentages: " + aggMinPercent + " - " + aggMaxPercent);
+        System.out.println("Filter Percentages: " + filterMinPercent + " - " + filterMaxPercent);
+        System.out.println("Downsample Percentages: " + downsampleMinPercent + " - " + downsampleMaxPercent);
+        System.out.println("Outlier Percentages: " + outlierMinPercent + " - " + outlierMaxPercent);
     }
 
-    public static QueryGenerator getInstance(String dataset, QueryBuilder builder, ClientOptions options, TimeController tc) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        Class<?> clazz = Class.forName("pt.haslab.mulletbench.queries.queryGenerators." + dataset + "QueryGenerator");
+    public void incrementSeed(long increment) {
+        if (this.useSeed) {
+            this.querySeed += increment;
+            random.setSeed(querySeed);
+        }
+    }
+
+    public static QueryGenerator getInstance(String dataset, QueryBuilder builder, ClientOptions options, TimeController tc, DatasetProcessor datasetProcessor) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+        Class<?> clazz = Class.forName("pt.haslab.mulletbench.queries.queryGenerators.QueryGenerator");
         if (QueryGenerator.class.isAssignableFrom(clazz)) {
-            return (QueryGenerator) clazz.getConstructor(QueryBuilder.class, ClientOptions.class, TimeController.class).newInstance(builder, options, tc);
+            return (QueryGenerator) clazz.getConstructor(QueryBuilder.class, ClientOptions.class, TimeController.class, DatasetProcessor.class).newInstance(builder, options, tc, datasetProcessor);
         } else {
             throw new ClassNotFoundException("Class does not extend QueryGenerator");
         }
@@ -77,6 +117,23 @@ public abstract class QueryGenerator {
         return Instant.ofEpochMilli(Math.abs(random.nextLong()) % (rangeSize - range.toMillis()) + timeController.getStartOfRange().toEpochMilli());
     }
 
+    protected Duration getRandomRange(float minPercent, float maxPercent, Duration minimumRange, Duration maximumRange) {
+        
+        float percent = minPercent + random.nextFloat() * (maxPercent - minPercent);
+
+        long rangeSize = (getRangeSize() * ((long) percent * 100)) / 100;
+
+        Duration queryRange = Duration.ofMillis(rangeSize);
+
+        if (queryRange.compareTo(minimumRange) < 0){
+            queryRange = minimumRange;
+        } else if (queryRange.compareTo(maximumRange) > 0){
+            queryRange = maximumRange;
+        }
+
+        return queryRange;
+    }
+
     protected String getRandomColumn(){
         return this.columns.get(random.nextInt(this.columns.size()));
     }
@@ -93,6 +150,10 @@ public abstract class QueryGenerator {
 
     public abstract Query generateQuery();
 
+    public abstract Query getFirstRecordQuery();
+
+    public abstract Query getLastRecordQuery();
+
     protected void processTimestamp(Long timestamp){
         timeController.processTimestamp(timestamp);
     }
@@ -101,11 +162,12 @@ public abstract class QueryGenerator {
         timeController.setStart(timestamp);
     }
 
-    public abstract void process(String dataFile) throws IOException;
-
     // Generate queries before execution to reduce overhead
     public List<Query> generateQueries(int count) {
         return IntStream.range(0, count).mapToObj(__ -> generateQuery()).collect(Collectors.toList());
     }
 
+    public long getSeed() {
+        return this.querySeed;
+    }
 }

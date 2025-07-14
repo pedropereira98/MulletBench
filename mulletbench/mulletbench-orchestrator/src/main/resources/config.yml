@@ -5,7 +5,7 @@ clientContainerBase: "mulletbench-"
 clients:
     - name: client1
       address: localhost
-      type: insert
+      type: QUERY
       target: cloud1
       monitor: false
 stages:

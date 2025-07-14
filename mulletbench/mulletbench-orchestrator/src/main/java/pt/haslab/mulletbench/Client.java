@@ -102,6 +102,8 @@ public class Client implements Runnable {
                 logger.info("Waiting for results from client");
                 this.statsCollector = (StatsCollector) objIn.readObject(); // read results
                 logger.info("Results from client received");
+
+                this.objOut.writeBoolean(true); // send ack
                 this.status = Status.FINISHED;
                 close();
             } catch (IOException e){

@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.time.Instant;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -15,17 +16,25 @@ import org.apache.logging.log4j.Logger;
 import pt.haslab.mulletbench.database.DatabaseConnectionFailedException;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.DatabaseConnectorFactory;
+import pt.haslab.mulletbench.database.FailedQueryException;
 import pt.haslab.mulletbench.datasets.Dataset;
 import pt.haslab.mulletbench.datasets.SharedDataset;
 import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.queries.queryBuilders.QueryBuilder;
-import pt.haslab.mulletbench.queries.queryGenerators.*;
+import pt.haslab.mulletbench.queries.queryGenerators.FloatsQueryGenerator;
+import pt.haslab.mulletbench.queries.queryGenerators.QueryGenerator;
+import pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors.DatasetProcessor;
+import pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors.FloatsDatasetProcessor;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.CurrentTimeController;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.DatasetTimeController;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
 import pt.haslab.mulletbench.stats.StatsCollector;
 import pt.haslab.mulletbench.utils.ClientOptions;
-import pt.haslab.mulletbench.workers.*;
+import pt.haslab.mulletbench.workers.InsertionWorker;
+import pt.haslab.mulletbench.workers.PoolManagementWorker;
+import pt.haslab.mulletbench.workers.PreGeneratedQueryWorker;
+import pt.haslab.mulletbench.workers.RealTimeQueryWorker;
+import pt.haslab.mulletbench.workers.Worker;
 
 public class BenchmarkClient {
 
@@ -40,23 +49,22 @@ public class BenchmarkClient {
     private ObjectOutputStream objOut;
     private ObjectInputStream objIn;
 
-    public BenchmarkClient(ClientOptions options)  {
+    public BenchmarkClient(ClientOptions options) {
         this.options = options;
         this.statsCollector = new StatsCollector(options.type, options.numWorkers);
         this.databaseConnectorFactory = new DatabaseConnectorFactory(options);
     }
 
-    private boolean waitForStart(){
-        try{
+    private boolean waitForStart() {
+        try {
             logger.debug("Waiting for orchestrator start message");
 
             SyncMessage receivedMessage = (SyncMessage) objIn.readObject();
 
             logger.debug(receivedMessage);
 
-
             return receivedMessage.equals(SyncMessage.START);
-        } catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
             logger.error("Error in connection to orchestrator. Aborting");
             logger.error(e);
@@ -68,7 +76,7 @@ public class BenchmarkClient {
         }
     }
 
-    private void send(SyncMessage message){
+    private void send(SyncMessage message) {
         try {
             objOut.writeObject(message);
         } catch (IOException e) {
@@ -78,7 +86,7 @@ public class BenchmarkClient {
         }
     }
 
-    private void connect() throws IOException{
+    private void connect() throws IOException {
         this.orchestratorSocket = new Socket(InetAddress.getByName(options.orchestratorAddress), options.orchestratorPort);
         logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " " + orchestratorSocket.getPort());
 
@@ -96,20 +104,20 @@ public class BenchmarkClient {
 
         try {
             Dataset sharedDataset = null;
-            if(options.sharedDataset){
+            if (options.sharedDataset) {
                 sharedDataset = new SharedDataset(options.dataFile);
             }
 
             DatabaseConnector databaseConnector = null;
-            if(options.sharedConnection){
+            if (options.sharedConnection) {
                 databaseConnector = databaseConnectorFactory.getInstance();
             }
 
-            for(int i = 0; i < options.numWorkers; i++){
-                if(!options.sharedConnection){
+            for (int i = 0; i < options.numWorkers; i++) {
+                if (!options.sharedConnection) {
                     databaseConnector = databaseConnectorFactory.getInstance();
                 }
-                if(options.sharedDataset){
+                if (options.sharedDataset) {
                     threadList[i] = new Thread(new InsertionWorker(databaseConnector, options, statsCollector.getStats(i), i, options.currentTime, sharedDataset));
                 } else {
                     threadList[i] = new Thread(new InsertionWorker(databaseConnector, options, statsCollector.getStats(i), i, options.currentTime));
@@ -118,7 +126,7 @@ public class BenchmarkClient {
 
             connect();
 
-            if(!waitForStart()){
+            if (!waitForStart()) {
                 // could throw exception
                 logger.error("Waiting for orchestrator start instruction failed. Aborting");
                 return;
@@ -128,12 +136,12 @@ public class BenchmarkClient {
             poolManager.start();
             this.statsCollector.startCollection();
 
-            for(int i = 0; i < options.numWorkers; i++){
+            for (int i = 0; i < options.numWorkers; i++) {
                 threadList[i].start();
             }
 
             logger.info("Waiting for workers to finish...");
-            for(int i = 0; i < options.numWorkers; i++){
+            for (int i = 0; i < options.numWorkers; i++) {
                 threadList[i].join();
             }
 
@@ -144,28 +152,89 @@ public class BenchmarkClient {
         }
     }
 
+    private Instant parseQueryResult(String value) {
+        if (options.target.toLowerCase().equals("iotdb")) {
+            String[] parts = value.split("( |\t)");
+            String timestamp = parts[0];
+            long nanoTs = Long.parseLong(timestamp);
+            Instant instant = Instant.ofEpochSecond(nanoTs / 1_000_000_000L, nanoTs % 1_000_000_000L);
+            return instant;
+        } 
+
+        String[] parts = value.split(" ");
+
+        String timestamp = null;
+        for (String part : parts) {
+            if (part.startsWith("_time=")) {
+                timestamp = part.substring(6); // remove "_time="
+                break;
+            }
+        }
+
+        return Instant.parse(timestamp.replace("Z", "+00:00"));
+    }
+
+    private Instant[] getQueryRange(DatabaseConnector databaseConnector, DatasetProcessor datasetProcessor) {
+        Instant[] range = new Instant[2];
+        if (options.currentTime)
+            return new Instant[]{Instant.now(), Instant.now()};
+
+        QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, new CurrentTimeController(), (FloatsDatasetProcessor) datasetProcessor);
+
+        Query firstRecordQuery = queryGenerator.getFirstRecordQuery();
+        Query lastRecordQuery = queryGenerator.getLastRecordQuery();
+
+        List<String> firstRecordResult = null;
+        List<String> lastRecordResult = null;
+
+        try {
+            firstRecordResult = databaseConnector.query(firstRecordQuery.queryString());
+            lastRecordResult = databaseConnector.query(lastRecordQuery.queryString());
+        } catch (FailedQueryException e) {
+            logger.error("Failed to get start and end range for dataset", e);
+            return null;
+        }
+
+        if (firstRecordResult.isEmpty() || lastRecordResult.isEmpty()) {
+            logger.error("No results found for first or last record queries. Aborting");
+            return null;
+        }
+
+        
+        String firstRecord = firstRecordResult.get(0);
+        String lastRecord = lastRecordResult.get(0);
+
+        System.out.println("First record: " + firstRecord);
+        System.out.println("Last record: " + lastRecord);
+
+        range[0] = parseQueryResult(firstRecord);
+        range[1] = parseQueryResult(lastRecord);
+        
+        return range;
+    }
+
     public void queryWorkload() throws DatabaseConnectionFailedException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         logger.info("Starting query workload");
         TimeController tc;
-        if (options.currentTime){
+        if (options.currentTime) {
             tc = new CurrentTimeController();
         } else {
             tc = new DatasetTimeController(options.query.numberOfLoops);
         }
 
-        QueryGenerator queryGenerator;
+        DatasetProcessor datasetProcessor;
         try {
-            queryGenerator = QueryGenerator.getInstance(options.dataset, QueryBuilder.createQueryBuilder(options), options, tc);
+            datasetProcessor = DatasetProcessor.getInstance(options.dataset, tc);
         } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
 
-        try{
+        try {
             // Data processing phase
             // Collecting values for queries
-            queryGenerator.process(options.dataFile);
+            datasetProcessor.process("/data/" + options.dataFile);
             logger.info("Finished data processing phase");
-        } catch (Exception e) {
+        } catch (IOException e) {
             logger.error("Failed to process data file", e);
             return;
         }
@@ -173,21 +242,30 @@ public class BenchmarkClient {
         Thread[] threadList = new Thread[options.numWorkers];
 
         DatabaseConnector databaseConnector = null;
-        if(options.sharedConnection){
+        if (options.sharedConnection) {
             databaseConnector = databaseConnectorFactory.getInstance();
         }
 
         try {
-            for(int i = 0; i < options.numWorkers; i++){
-                if(!options.sharedConnection){
+
+            Instant[] startEndRange = getQueryRange(databaseConnectorFactory.getInstance(), datasetProcessor);
+
+            tc.setStart(startEndRange[0]);
+            tc.setEnd(startEndRange[1]);
+
+            for (int i = 0; i < options.numWorkers; i++) {
+                if (!options.sharedConnection) {
                     databaseConnector = databaseConnectorFactory.getInstance();
                 }
 
                 // Generate queries before executing worker
-                if(options.currentTime){
+                if (options.currentTime) {
+                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
                     queryGenerator.setStart(System.currentTimeMillis());
                     threadList[i] = new Thread(new RealTimeQueryWorker(databaseConnector, options, statsCollector.getStats(i), queryGenerator, i));
-                } else{
+                } else {
+                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
+                    queryGenerator.incrementSeed(i);
                     List<Query> workerQueries = queryGenerator.generateQueries(options.query.count);
                     threadList[i] = new Thread(new PreGeneratedQueryWorker(databaseConnector, options, statsCollector.getStats(i), i, workerQueries));
                 }
@@ -195,7 +273,7 @@ public class BenchmarkClient {
 
             connect();
 
-            if(!waitForStart()){
+            if (!waitForStart()) {
                 // could throw exception
                 logger.error("Waiting for orchestrator start instruction failed. Aborting");
                 return;
@@ -203,13 +281,13 @@ public class BenchmarkClient {
 
             this.statsCollector.startCollection();
 
-            for(int i = 0; i < options.numWorkers; i++){
+            for (int i = 0; i < options.numWorkers; i++) {
                 logger.info("Starting " + PreGeneratedQueryWorker.class.getSimpleName() + " " + i);
                 threadList[i].start();
             }
 
             logger.info("Waiting for workers to finish...");
-            for(int i = 0; i < options.numWorkers; i++){
+            for (int i = 0; i < options.numWorkers; i++) {
                 threadList[i].join();
             }
 
@@ -222,16 +300,18 @@ public class BenchmarkClient {
         logger.info("Waiting for orchestrator start message");
 
         Worker.setNumWorkers(options.numWorkers);
-        try{
+        try {
             switch (options.type) {
-                case INSERT -> insertionWorkload();
-                case QUERY -> queryWorkload();
+                case INSERT ->
+                    insertionWorkload();
+                case QUERY ->
+                    queryWorkload();
                 default -> {
                     logger.error("Invalid worker type");
                     return;
                 }
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.error("Workload execution failed", e);
         } catch (DatabaseConnectionFailedException e) {
             logger.error("Workload execution failed");
@@ -244,22 +324,39 @@ public class BenchmarkClient {
         this.statsCollector.printStats();
 
         logger.debug("Sending collected statistics to orchestrator");
-        try{
+
+        try {
             this.orchestratorSocket.setTcpNoDelay(true); //better for bigger writes
             this.objOut.writeObject(this.statsCollector);
             this.objOut.flush();
-            logger.info("Statistics successfully sent");
-        } catch (IOException e){
+
+            logger.debug("Sent statistics to orchestrator");
+        } catch (IOException e) {
             logger.error("Failed to send results to orchestrator");
             e.printStackTrace();
         }
 
-        try{
+        try {
+            this.objIn.readBoolean();
+            logger.info("Statistics successfully sent");
+        } catch(IOException e) {
+            logger.info("Statistics successfully sent");
+            e.printStackTrace();
+        }
+
+
+        try {
+            // Thread.sleep(10000); 
+
+            this.orchestratorSocket.shutdownOutput();
+
+            logger.info("Shutdown output stream to orchestrator");
+
             this.objOut.close();
             this.objIn.close();
             this.orchestratorSocket.close();
             logger.info("Connection to orchestrator closed");
-        } catch (IOException e){
+        } catch (IOException e) {
             logger.error("Failed to close orchestrator socket");
             e.printStackTrace();
         }

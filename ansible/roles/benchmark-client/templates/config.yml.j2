@@ -32,6 +32,40 @@ query:
   {% if query_seed is defined -%}
   querySeed: {{ query_seed }} 
   {% endif -%}
+  {% if ranges is defined -%}
+  {% if ranges.aggregation is defined -%}
+  {% if ranges.aggregation.min is defined -%}
+  aggMinPercent: {{ ranges.aggregation.min }}
+  {% endif -%}
+  {% if ranges.aggregation.max is defined -%}
+  aggMaxPercent: {{ ranges.aggregation.max }}
+  {% endif -%}
+  {% endif -%}
+  {% if ranges.filter is defined -%}
+  {% if ranges.filter.min is defined -%}
+  filterMinPercent: {{ ranges.filter.min }}
+  {% endif -%}
+  {% if ranges.filter.max is defined -%}
+  filterMaxPercent: {{ ranges.filter.max }}
+  {% endif -%}
+  {% endif -%}
+  {% if ranges.downsample is defined -%}
+  {% if ranges.downsample.min is defined -%}
+  downsampleMinPercent: {{ ranges.downsample.min }}
+  {% endif -%}
+  {% if ranges.downsample.max is defined -%}
+  downsampleMaxPercent: {{ ranges.downsample.max }}
+  {% endif -%}
+  {% endif -%}
+  {% if ranges.outlier_filter is defined -%}
+  {% if ranges.outlier_filter.min is defined -%}
+  outlierMinPercent: {{ ranges.outlier_filter.min }}
+  {% endif -%}
+  {% if ranges.outlier_filter.max is defined -%}
+  outlierMaxPercent: {{ ranges.outlier_filter.max }}
+  {% endif -%}
+  {% endif -%}
+  {% endif -%}
 
 {% endif %}
 

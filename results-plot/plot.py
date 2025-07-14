@@ -8,8 +8,8 @@ import glob
 from datetime import datetime, timedelta
 
 epoch = datetime.utcfromtimestamp(0)
-images_folder = "images/"
-data_folder = "data/"
+images_folder = "results/tsbs-1-gzip/run-1/images/"
+data_folder = "results/tsbs-1-gzip/run-1/data/"
 metrics_folder = "metrics/"
 monitoring_folder = "monitoring/"
 os.makedirs(images_folder, exist_ok=True)
@@ -17,8 +17,8 @@ os.makedirs(images_folder+metrics_folder, exist_ok=True)
 os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-# FORMAT="pdf"
 FORMAT="png"
+# FORMAT="pdf"
 
 # CUT = True
 CUT = False
@@ -34,7 +34,7 @@ current_stage = 0 #works if
 PLOT_INDIVIDUAL_CLIENTS = True
 PLOT_AGGREGATE_CLIENTS = True
 PLOT_CLIENT_MONITORING = False
-PLOT_DB_MONITORING = False
+PLOT_DB_MONITORING = True
 
 plt.rcParams['font.family'] = ['NewsGotT'] #font for thesis
 max_test_timestamp = 0
@@ -111,31 +111,33 @@ def monitor_df_from_path(file_path: str):
 
     #reading data with format time (datetime), lo-in (float), eth0-in (float), lo-out (float),eth0-out (float), RAM (float), cpu-system (float), cpu-user (float), io-read (float), io-write (float)
     monitor_df = pd.read_csv(file_path)
+    
 
     interface_columns = get_interface_columns(monitor_df)
+    print(interface_columns)
 
     monitor_df.columns = ['time', interface_columns[0], interface_columns[1], interface_columns[2], interface_columns[3], 'RAM', 'cpu-system', 'cpu-user', 'io-read', 'io-write']
 
 
-    if "client" in file_path:
-        time_min = parse_monitor_datetime(monitor_df['time'].min())
-        time_max = parse_monitor_datetime(monitor_df['time'].max())
+    # if "client" in file_path:
+    time_min = parse_monitor_datetime(monitor_df['time'].min())
+    time_max = parse_monitor_datetime(monitor_df['time'].max())
 
-        # populate for first df
-        if len(stages_max) == 0 :
-            stages_min.append(time_min)
-            stages_max.append(time_max)
+    # populate for first df
+    if len(stages_max) == 0 :
+        stages_min.append(time_min)
+        stages_max.append(time_max)
 
-        found_stage = False
-        for stage in range(current_stage + 1):
-            # within 5 seconds of the current stage min_time -> same stage
-            if time_min < stages_min[stage] + timedelta(seconds=5) and time_min > stages_min[stage] - timedelta(seconds=5):
-                stages_max[stage] = max(stages_max[stage],time_max)
-                found_stage = True
-        if not found_stage:
-            current_stage = current_stage + 1
-            stages_min.append(time_min)
-            stages_max.append(time_max)
+    found_stage = False
+    for stage in range(current_stage + 1):
+        # within 5 seconds of the current stage min_time -> same stage
+        if time_min < stages_min[stage] + timedelta(seconds=5) and time_min > stages_min[stage] - timedelta(seconds=5):
+            stages_max[stage] = max(stages_max[stage],time_max)
+            found_stage = True
+    if not found_stage:
+        current_stage = current_stage + 1
+        stages_min.append(time_min)
+        stages_max.append(time_max)
 
     # change time to time elapsed
     monitor_df['time'] = pd.to_datetime(monitor_df['time'])
@@ -150,10 +152,12 @@ def plot_stage_lines(max_relative_timestamps):
         if i == len(max_relative_timestamps)-1:
             plt.text(stage_ts,1.02,'Test finish',ha='center',rotation=0, transform=plt.gca().get_xaxis_transform())
 
-        if i == 0:
-            text = "Pre-population"
-        if i == 1:
-            text = "Mixed stage"
+        text = ""
+        if len(max_relative_timestamps) > 1:
+            if i == 0:
+                text = "Pre-population"
+            if i == 1:
+                text = "Mixed stage"
 
         # text = f'Stage {i+1}'
         if i == 0:
@@ -170,10 +174,12 @@ def plot_stage_lines(max_relative_timestamps):
 
 
 def plot_monitoring(file_path: str):
+    print(file_path)
     monitor_df = monitor_df_from_path(file_path)
 
     max_relative_timestamps = []
     if not "client" in file_path:
+        print(stages_min)
         min_abs_timestamp = min(i for i in stages_min)
         for max_abs_timestamp in stages_max:
             relative_timestamp = max_abs_timestamp - min_abs_timestamp
@@ -187,11 +193,14 @@ def plot_monitoring(file_path: str):
 
     #plot line graph with cpu-system and cpu-user for time with y start from 0
     monitor_df['cpu-total'] = monitor_df['cpu-system'] + monitor_df['cpu-user']
+    monitor_df['cpu-total'] = monitor_df['cpu-total']
     monitor_df.plot(x='time', y= ['cpu-total'], )
     plt.fill_between(monitor_df['time'], monitor_df['cpu-total'], color='skyblue', alpha=0.4)
     # plt.title("Total CPU usage")
     plt.ylabel("% up to 100 * number of cores")
     plt.xlabel("Elapsed time (s)")
+
+    print(f"Average CPU usage for {file_path}: {monitor_df['cpu-total'].mean()}")
 
     plot_stage_lines(max_relative_timestamps)
 
@@ -205,6 +214,8 @@ def plot_monitoring(file_path: str):
     # plt.title("Memory Usage")
     plt.ylabel("MB")
     plt.xlabel("Elapsed time (s)")
+
+    print(f"Average RAM usage for {file_path}: {monitor_df['RAM'].mean()}")
 
     plot_stage_lines(max_relative_timestamps)
 
@@ -221,6 +232,9 @@ def plot_monitoring(file_path: str):
     plt.ylabel("Throughput (MB/s)")
     plt.xlabel("Elapsed time (s)")
 
+    print(f"Average eth0-in for {file_path}: {monitor_df['eth0-in'].mean()}")
+    print(f"Average eth0-out for {file_path}: {monitor_df['eth0-out'].mean()}")
+
     plot_stage_lines(max_relative_timestamps)
 
     set_axis()
@@ -234,6 +248,9 @@ def plot_monitoring(file_path: str):
     # plt.title("Disk I/O")
     plt.ylabel("Throughput (MB/s)")
     plt.xlabel("Elapsed time (s)")
+    
+    print(f"Average io-read for {file_path}: {monitor_df['io-read'].mean()}")
+    print(f"Average io-write for {file_path}: {monitor_df['io-write'].mean()}")
 
     plot_stage_lines(max_relative_timestamps)
     
@@ -356,6 +373,7 @@ def plot_benchmark_client(file_path: str):
     min_after = client_df['after'].min()
     client_df['after'] =  (client_df['after'] - min_after)
 
+    print(f"Average latency for {file_path}: {client_df['latency'].mean()}")
 
     client_df.sort_values('after', inplace=True)
     client_df.set_index('after', inplace=True)
@@ -383,6 +401,7 @@ def plot_aggregate_benchmark_clients(file_paths: list):
             client_df['after'] = pd.to_datetime(client_df['after'], unit='ns')
             min_after = min(client_df['after'].min(),min_after)
 
+    print(f"\n\n{min_after}\n\n")
 
     for file_path in file_paths:
         ## reading data with format before (timetamp), after (timestamp), amount (int), type (string)
@@ -408,6 +427,8 @@ def plot_aggregate_benchmark_clients(file_paths: list):
             insert_throughput = insert_throughput/10
 
             insert_throughput.index = insert_throughput.index.map(lambda el : seconds_millis(el))
+            
+            print(f"Average throughput for {file_path}: {insert_throughput.mean()}")
 
             insert_throughput.plot()
 
@@ -426,25 +447,35 @@ def plot_aggregate_benchmark_clients(file_paths: list):
     
 
 def main():
+    global data_folder, images_folder, stages_max, stages_min, current_stage
 
-    if PLOT_INDIVIDUAL_CLIENTS:
-        for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
-            plot_benchmark_client(data_folder + client)
+    for j in range(1,4):
+        data_folder = f"results/Reference_Agg_0_25_8w/run-{j}/data/"
+        images_folder = f"results/Reference_Agg_0_25_8w/run-{j}/images/"
 
-    if PLOT_AGGREGATE_CLIENTS:
-        clients = []
-        for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
-            clients.append(data_folder + client)
+        os.makedirs(images_folder, exist_ok=True)
+        os.makedirs(images_folder+metrics_folder, exist_ok=True)
+        os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
-        plot_aggregate_benchmark_clients(clients)
+        if PLOT_INDIVIDUAL_CLIENTS:
+            for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+                plot_benchmark_client(data_folder + client)
 
-    if PLOT_CLIENT_MONITORING or PLOT_DB_MONITORING:
-        for client_monitoring in glob.glob("monitor-client*.csv", root_dir=data_folder):
-            plot_monitoring(data_folder + client_monitoring)
+        if PLOT_AGGREGATE_CLIENTS:
+            clients = []
+            for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+                clients.append(data_folder + client)
 
-    if PLOT_DB_MONITORING:
-        for db_monitoring in glob.glob("monitor-cloud*.csv", root_dir=data_folder) + glob.glob("monitor-edge*.csv", root_dir=data_folder):
-            plot_monitoring(data_folder + db_monitoring)
+            plot_aggregate_benchmark_clients(clients)
+
+        if PLOT_CLIENT_MONITORING or PLOT_DB_MONITORING:
+            for client_monitoring in glob.glob("monitor-client*.csv", root_dir=data_folder):
+                plot_monitoring(data_folder + client_monitoring)
+
+        if PLOT_DB_MONITORING:
+            print("Plotting db monitoring")
+            for db_monitoring in glob.glob("monitor-cloud*.csv", root_dir=data_folder) + glob.glob("monitor-edge*.csv", root_dir=data_folder):
+                plot_monitoring(data_folder + db_monitoring)
 
 if __name__ == "__main__":
     main()
