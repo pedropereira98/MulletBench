@@ -3,8 +3,13 @@ package pt.haslab.mulletbench.queries.queryGenerators;
 import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -16,10 +21,11 @@ import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeControll
 import pt.haslab.mulletbench.utils.ClientOptions;
 
 public abstract class QueryGenerator {
+    
     protected QueryBuilder builder;
 
     protected DatasetProcessor datasetProcessor;
-
+    
     protected String from; //bucket or devicePath
 
     protected TimeController timeController;
@@ -29,12 +35,16 @@ public abstract class QueryGenerator {
     protected Random random;
 
     protected Instant startRange, endRange; // start and end of the range of the dataset
-    
+
     protected float aggMinPercent, aggMaxPercent;
+    protected String aggMinRange, aggMaxRange;
     protected float filterMinPercent, filterMaxPercent;
+    protected String filterMinRange, filterMaxRange;
     protected float downsampleMinPercent, downsampleMaxPercent;
+    protected String downsampleMinRange, downsampleMaxRange;
     protected float outlierMinPercent, outlierMaxPercent;
-    
+    protected String outlierMinRange, outlierMaxRange;
+
     // Probability weights for each query type
     int aggChance;
     int filterChance;
@@ -45,17 +55,21 @@ public abstract class QueryGenerator {
     float filterZScore;
     long querySeed;
     boolean useSeed;
-
+    
+    private static final Pattern DURATION_PATTERN = Pattern.compile("^([0-9]+)\s*([a-zA-Z]+)$");
 
     QueryGenerator(QueryBuilder builder, ClientOptions options, TimeController tc, DatasetProcessor datasetProcessor) {
         this.builder = builder;
         this.from = switch (options.target) {
-            case "influx" ->  options.influx.bucket;
-            case "iotdb" -> options.iotdb.devicePath;
-            default -> throw new IllegalStateException("Unexpected value: " + options.target);
+            case "influx" ->
+                options.influx.bucket;
+            case "iotdb" ->
+                options.iotdb.devicePath;
+            default ->
+                throw new IllegalStateException("Unexpected value: " + options.target);
         };
         this.random = new Random();
-        
+
         this.columns = datasetProcessor.getColumns();
         this.aggChance = options.query.aggChance;
         this.filterChance = options.query.filterChance + aggChance;
@@ -69,22 +83,34 @@ public abstract class QueryGenerator {
         if (this.querySeed == -1L) {
             this.useSeed = false;
         }
-        if (this.useSeed){
+        if (this.useSeed) {
             random.setSeed(querySeed);
         }
         this.aggMinPercent = options.query.aggMinPercent;
         this.aggMaxPercent = options.query.aggMaxPercent;
+        this.aggMinRange = options.query.aggMinRange;
+        this.aggMaxRange = options.query.aggMaxRange;
         this.filterMinPercent = options.query.filterMinPercent;
         this.filterMaxPercent = options.query.filterMaxPercent;
+        this.filterMinRange = options.query.filterMinRange;
+        this.filterMaxRange = options.query.filterMaxRange;
         this.downsampleMinPercent = options.query.downsampleMinPercent;
         this.downsampleMaxPercent = options.query.downsampleMaxPercent;
+        this.downsampleMinRange = options.query.downsampleMinRange;
+        this.downsampleMaxRange = options.query.downsampleMaxRange;
         this.outlierMinPercent = options.query.outlierMinPercent;
         this.outlierMaxPercent = options.query.outlierMaxPercent;
+        this.outlierMinRange = options.query.outlierMinRange;
+        this.outlierMaxRange = options.query.outlierMaxRange;
         // print percentages for debugging purposes
         System.out.println("Aggregation Percentages: " + aggMinPercent + " - " + aggMaxPercent);
         System.out.println("Filter Percentages: " + filterMinPercent + " - " + filterMaxPercent);
         System.out.println("Downsample Percentages: " + downsampleMinPercent + " - " + downsampleMaxPercent);
         System.out.println("Outlier Percentages: " + outlierMinPercent + " - " + outlierMaxPercent);
+        System.out.println("Aggregation Range: " + aggMinRange + " - " + aggMaxRange);
+        System.out.println("Filter Range: " + filterMinRange + " - " + filterMaxRange);
+        System.out.println("Downsample Range: " + downsampleMinRange + " - " + downsampleMaxRange);
+        System.out.println("Outlier Range: " + outlierMinRange + " - " + outlierMaxRange);
     }
 
     public void incrementSeed(long increment) {
@@ -103,11 +129,11 @@ public abstract class QueryGenerator {
         }
     }
 
-    protected long getRangeSize(){
+    protected long getRangeSize() {
         return timeController.getRangeSize();
     }
 
-    protected Instant getRandomStart(Duration range){
+    protected Instant getRandomStart(Duration range) {
         long rangeSize = timeController.getRangeSize();
 //        if(range.toMillis() > rangeSize)
 //            throw new IllegalArgumentException("Range is larger than the total range of the dataset");
@@ -117,28 +143,92 @@ public abstract class QueryGenerator {
         return Instant.ofEpochMilli(Math.abs(random.nextLong()) % (rangeSize - range.toMillis()) + timeController.getStartOfRange().toEpochMilli());
     }
 
-    protected Duration getRandomRange(float minPercent, float maxPercent, Duration minimumRange, Duration maximumRange) {
-        
+    private ChronoUnit parseChronoUnit(String unitString) {
+        return switch (unitString.toLowerCase()) {
+            case "s" ->
+                ChronoUnit.SECONDS;
+            case "m" ->
+                ChronoUnit.MINUTES;
+            case "h" ->
+                ChronoUnit.HOURS;
+            case "d" ->
+                ChronoUnit.DAYS;
+            case "mo" ->
+                ChronoUnit.MONTHS;
+            case "y" ->
+                ChronoUnit.YEARS;
+            default ->
+                throw new IllegalArgumentException("Invalid step unit: " + unitString);
+        };
+    }
+
+
+    private Duration parseDurationString(String durationString) {
+        Objects.requireNonNull(durationString, "Duration string cannot be null");
+        durationString = durationString.trim();
+        if (durationString.isEmpty()) {
+            throw new IllegalArgumentException("Duration string cannot be empty");
+        }
+
+        Matcher matcher = DURATION_PATTERN.matcher(durationString);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid duration format: " + durationString);
+        }
+
+        long amount = Long.parseLong(matcher.group(1));
+        ChronoUnit unit = parseChronoUnit(matcher.group(2).toLowerCase());
+
+        return Duration.of(amount, unit);
+    }
+
+
+    private Duration getRangeWithinBounds(String minimumRange, String maximumRange) {
+        Duration minRange = parseDurationString(minimumRange);
+        Duration maxRange = parseDurationString(maximumRange);
+
+        if (minRange.compareTo(maxRange) > 0) {
+            throw new IllegalArgumentException("Minimum range cannot be greater than maximum range");
+        }
+
+        long rangeSize = ThreadLocalRandom.current().nextLong(minRange.toMillis(), maxRange.toMillis() + 1);
+
+        return Duration.ofMillis(rangeSize);
+    }
+
+    protected Duration getRandomRange(float minPercent, float maxPercent, String minimumRange, String maximumRange) {
+        boolean hasPercent = minPercent > 0 && maxPercent > 0;
+        boolean hasRanges = minimumRange != null && !minimumRange.isEmpty()
+                && maximumRange != null && !maximumRange.isEmpty();
+
+        if (!hasPercent && hasRanges) {
+            // only min/max ranges
+            return getRangeWithinBounds(minimumRange, maximumRange);
+        }
+
         float percent = minPercent + random.nextFloat() * (maxPercent - minPercent);
-
-        long rangeSize = (getRangeSize() * ((long) percent * 100)) / 100;
-
+        long percentAsLong = (long) (percent * 10_000);
+        long rangeSize = (getRangeSize() * percentAsLong) / 10_000;
         Duration queryRange = Duration.ofMillis(rangeSize);
 
-        if (queryRange.compareTo(minimumRange) < 0){
-            queryRange = minimumRange;
-        } else if (queryRange.compareTo(maximumRange) > 0){
-            queryRange = maximumRange;
+        if (hasRanges) {
+            Duration minRange = parseDurationString(minimumRange);
+            Duration maxRange = parseDurationString(maximumRange);
+
+            if (queryRange.compareTo(minRange) < 0) {
+                queryRange = minRange;
+            } else if (queryRange.compareTo(maxRange) > 0) {
+                queryRange = maxRange;
+            }
         }
 
         return queryRange;
     }
 
-    protected String getRandomColumn(){
+    protected String getRandomColumn() {
         return this.columns.get(random.nextInt(this.columns.size()));
     }
 
-    protected AggregationFunction getRandomAggregatorFunction(){
+    protected AggregationFunction getRandomAggregatorFunction() {
         return AggregationFunction.values()[random.nextInt(AggregationFunction.values().length)];
     }
 
@@ -154,11 +244,11 @@ public abstract class QueryGenerator {
 
     public abstract Query getLastRecordQuery();
 
-    protected void processTimestamp(Long timestamp){
+    protected void processTimestamp(Long timestamp) {
         timeController.processTimestamp(timestamp);
     }
 
-    public void setStart(long timestamp){
+    public void setStart(long timestamp) {
         timeController.setStart(timestamp);
     }
 

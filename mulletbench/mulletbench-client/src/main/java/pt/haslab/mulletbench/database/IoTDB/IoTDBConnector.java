@@ -39,7 +39,7 @@ public class IoTDBConnector implements DatabaseConnector {
     }
 
     @Override
-    public List query(String query) throws FailedQueryException {
+    public List<String> query(String query) throws FailedQueryException {
         SessionDataSet resultSet;
 
         try{

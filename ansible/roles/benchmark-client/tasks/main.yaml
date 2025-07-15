@@ -114,6 +114,37 @@
       ansible.builtin.debug:
         var: num_loops
 
+- name: Validate ranges configuration
+  when: type == "QUERY" and ranges is defined
+  vars:
+    duration_regex: '^\\d+(s|m|h|d|mo|y)$'
+  block:
+
+    - name: Validate each range block
+      ansible.builtin.assert:
+        that:
+          # --- percentage ---
+          - item.value.percentage is not defined or item.value.percentage.min is defined
+          - item.value.percentage is not defined or item.value.percentage.max is defined
+          - item.value.percentage is not defined or item.value.percentage.min >= 0
+          - item.value.percentage is not defined or item.value.percentage.max <= 1
+          - item.value.percentage is not defined or item.value.percentage.min < item.value.percentage.max
+
+          # --- range ---
+          - item.value.range is not defined or item.value.range.min is defined
+          - item.value.range is not defined or item.value.range.max is defined
+          - item.value.range is not defined or item.value.range.min is string
+          - item.value.range is not defined or item.value.range.max is string
+
+        fail_msg: |
+          Invalid configuration for '{{ item.key }}':
+          percentage: min/max = {{ item.value.percentage | default('n/a') }}
+          range: min={{ item.value.range.min | default('n/a') }}, max={{ item.value.range.max | default('n/a') }}
+      loop: "{{ ranges | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+
 - name: Ensure /tmp/mulletbench/config dir exists
   ansible.builtin.file:
     path: /tmp/mulletbench/{{ inventory_hostname }}/config

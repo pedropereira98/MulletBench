@@ -69,7 +69,7 @@ public class FloatsQueryGenerator extends QueryGenerator {
     protected Query generateAggregation(){
         String field = getRandomColumn(); //get random field from columns
 
-        Duration queryRange = getRandomRange(aggMinPercent, aggMaxPercent, Duration.ofSeconds(5), Duration.ofMinutes(20));
+        Duration queryRange = getRandomRange(aggMinPercent, aggMaxPercent, aggMinRange, aggMaxRange);
 
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
@@ -89,16 +89,7 @@ public class FloatsQueryGenerator extends QueryGenerator {
         String field = getRandomColumn(); //get random field from columns
         int fieldIdx = columns.indexOf(field);
 
-        // queryRange is at least 5 seconds and at most 20 minutes
-        Duration minimumRange = Duration.ofSeconds(5);
-        Duration maximumRange = Duration.ofMinutes(20);
-        Duration queryRange = Duration.ofMillis(getRangeSize()/4);
-
-        if (queryRange.compareTo(minimumRange) < 0){
-            queryRange = minimumRange;
-        } else if (queryRange.compareTo(maximumRange) > 0){
-            queryRange = maximumRange;
-        }
+        Duration queryRange = getRandomRange(filterMinPercent, filterMaxPercent, filterMinRange, filterMaxRange);
 
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
@@ -123,7 +114,7 @@ public class FloatsQueryGenerator extends QueryGenerator {
         String field = getRandomColumn(); //get random field from columns
         int fieldIdx = columns.indexOf(field);
 
-        Duration queryRange = getRandomRange(outlierMinPercent, outlierMaxPercent, Duration.ofSeconds(5), Duration.ofMinutes(20));
+        Duration queryRange = getRandomRange(outlierMinPercent, outlierMaxPercent, outlierMinRange, outlierMaxRange);
 
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
@@ -163,7 +154,7 @@ public class FloatsQueryGenerator extends QueryGenerator {
         };
 
 
-        Duration queryRange = getRandomRange(downsampleMinPercent, downsampleMaxPercent, Duration.ofMinutes(1), Duration.ofMinutes(120));
+        Duration queryRange = getRandomRange(downsampleMinPercent, downsampleMaxPercent, downsampleMinRange, downsampleMaxRange);
         Instant before = getRandomStart(queryRange);
         Instant after = before.plus(queryRange);
 

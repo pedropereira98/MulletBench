@@ -32,39 +32,72 @@ query:
   {% if query_seed is defined -%}
   querySeed: {{ query_seed }} 
   {% endif -%}
+  
   {% if ranges is defined -%}
+  
   {% if ranges.aggregation is defined -%}
-  {% if ranges.aggregation.min is defined -%}
-  aggMinPercent: {{ ranges.aggregation.min }}
+  {% if ranges.aggregation.percentage is defined -%}
+  aggMinPercent: {{ ranges.aggregation.percentage.min }}
+  aggMaxPercent: {{ ranges.aggregation.percentage.max }}
   {% endif -%}
-  {% if ranges.aggregation.max is defined -%}
-  aggMaxPercent: {{ ranges.aggregation.max }}
-  {% endif -%}
-  {% endif -%}
-  {% if ranges.filter is defined -%}
-  {% if ranges.filter.min is defined -%}
-  filterMinPercent: {{ ranges.filter.min }}
-  {% endif -%}
-  {% if ranges.filter.max is defined -%}
-  filterMaxPercent: {{ ranges.filter.max }}
+  
+  {% if ranges.aggregation.range is defined -%}
+  aggMinRange: {{ ranges.aggregation.range.min }}
+  aggMaxRange: {{ ranges.aggregation.range.max }}
   {% endif -%}
   {% endif -%}
+  
   {% if ranges.downsample is defined -%}
-  {% if ranges.downsample.min is defined -%}
-  downsampleMinPercent: {{ ranges.downsample.min }}
+  {% if ranges.downsample.percentage is defined -%}
+  downsampleMinPercent: {{ ranges.downsample.percentage.min }}
+  downsampleMaxPercent: {{ ranges.downsample.percentage.max }}
   {% endif -%}
-  {% if ranges.downsample.max is defined -%}
-  downsampleMaxPercent: {{ ranges.downsample.max }}
+  
+  {% if ranges.aggregation.range is defined -%}
+  downsampleMinRange: {{ ranges.downsample.range.min }}
+  downsampleMaxRange: {{ ranges.downsample.range.max }}
   {% endif -%}
   {% endif -%}
+
   {% if ranges.outlier_filter is defined -%}
-  {% if ranges.outlier_filter.min is defined -%}
-  outlierMinPercent: {{ ranges.outlier_filter.min }}
+  {% if ranges.outlier_filter.percentage is defined -%}
+  outlierMinPercent: {{ ranges.outlier_filter.percentage.min }}
+  outlierMaxPercent: {{ ranges.outlier_filter.percentage.max }}
   {% endif -%}
-  {% if ranges.outlier_filter.max is defined -%}
-  outlierMaxPercent: {{ ranges.outlier_filter.max }}
+  {% if ranges.outlier_filter.range is defined -%}
+  outlierMinRange: {{ ranges.outlier_filter.range.min }}
+  outlierMaxRange: {{ ranges.outlier_filter.range.max }}
   {% endif -%}
   {% endif -%}
+
+  {% if ranges.filter is defined %}
+  {% if ranges.filter.percentage is defined -%}
+  filterMinPercent: {{ ranges.filter.percentage.min }}
+  filterMaxPercent: {{ ranges.filter.percentage.max }}
+  {% endif -%}
+  {% if ranges.filter.range is defined -%}
+  filterMinRange: {{ ranges.filter.range.min }}
+  filterMaxRange: {{ ranges.filter.range.max }}
+  {% endif -%}
+  {% endif -%}
+  
+  {% else -%}
+  aggMinPercent: 0.25
+  aggMaxPercent: 0.25
+  aggMinRange: "5s"
+  aggMaxRange: "20m"
+  downsampleMinPercent: 0.25
+  downsampleMaxPercent: 0.25
+  downsampleMinRange: "1m"
+  downsampleMaxRange: "2h"
+  filterMinPercent: 0.25
+  filterMaxPercent: 0.25
+  filterMinRange: "5s"
+  filterMaxRange: "20m"
+  outlierMinPercent: 0.25
+  outlierMaxPercent: 0.25
+  outlierMinRange: "5s"
+  outlierMaxRange: "20m"
   {% endif -%}
 
 {% endif %}

@@ -8,7 +8,7 @@ public interface DatabaseConnector {
     //Performs insertion of a batch of records for a deviceId
     boolean write(List<String> records, String deviceId);
 
-    List query(String query) throws FailedQueryException;
+    List<String> query(String query) throws FailedQueryException;
 
     void close();
 

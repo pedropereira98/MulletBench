@@ -22,7 +22,6 @@ public abstract class Stats implements Serializable {
 
     public void registerOperation(long before, long after, int size, OperationType type){
         StatsEntry e = new StatsEntry(before, after, size, type);
-        System.out.println("Registering operation: " + e.toCSV());
         synchronized(operations){
             operations.add(e);
         }
