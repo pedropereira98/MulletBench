@@ -1,16 +1,32 @@
 package pt.haslab.mulletbench;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Reader;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import pt.haslab.mulletbench.utils.*;
+
+import pt.haslab.mulletbench.utils.ClientOptions;
+import pt.haslab.mulletbench.utils.GlobalStats;
+import pt.haslab.mulletbench.utils.NodeOptions;
+import pt.haslab.mulletbench.utils.OrchestratorOptions;
+import pt.haslab.mulletbench.utils.StageOptions;
 
 public class Orchestrator {
 
@@ -184,38 +200,54 @@ public class Orchestrator {
         // wait for connections from all clients
         try{
             int receivedClients = 0;
-
+            serverSocket.setSoTimeout(120000); // set 2 minute timeout for accepting connections
+            
             //creates folder for results
             Files.createDirectories(Paths.get(this.resultsFolder));
             logger.info("Waiting for clients");
             while(receivedClients < clients.size()){
                 Socket receivedSocket = serverSocket.accept(); //TODO timeout if not all connections are received
                 InetAddress socketAddress = receivedSocket.getInetAddress();
-                logger.info("Accepted " + socketAddress.toString());
+                logger.info("Received connection request from " + socketAddress.toString());
 
-                if(clientAddresses.containsKey(socketAddress)){
-                    logger.debug("Adding " + socketAddress);
 
-                    ObjectInputStream clientObjIn = new ObjectInputStream(new BufferedInputStream(receivedSocket.getInputStream()));
-                    String clientID = (String) clientObjIn.readObject();
+                ObjectInputStream clientObjIn = new ObjectInputStream(new BufferedInputStream(receivedSocket.getInputStream()));
+                String receivedMessage = (String) clientObjIn.readObject();
+                String[] parts = receivedMessage.split(";");
+
+                if (parts.length < 2) {
+                    logger.error("Received invalid message from " + socketAddress);
+                    continue;
+                }
+
+                String clientID = parts[0];
+                String clientAddress = parts[1];
+                InetAddress clientInetAddress = InetAddress.getByName(clientAddress);
+
+
+                if(clientAddresses.containsKey(clientInetAddress) && clientAddresses.get(clientInetAddress).containsClient(clientID)){
+                    logger.debug("Adding " + clientInetAddress);
+
                     logger.info("Received " + clientID);
 
-                    if(clientAddresses.get(socketAddress).connect(clientID, receivedSocket, clientObjIn)){
+                    if(clientAddresses.get(clientInetAddress).connect(clientID, receivedSocket, clientObjIn)){
                         receivedClients++;
                     } else {
                         logger.error("Address already received all clients");
                     }
                 } else {
-                    logger.error("Received unexpected connection " + socketAddress);
+                    logger.error("Received unexpected connection with socketAddress " + socketAddress + " and clientAddress " + clientInetAddress);
                 }
             }
+        } catch (SocketTimeoutException e) {
+            logger.error("Timeout while waiting for clients to connect");
+            throw new RuntimeException("Timeout while waiting for clients to connect");
         } catch (IOException e){
             logger.error("Connection to a client failed");
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-
         // start resource metric collection
         startMonitoringDatabase();
 

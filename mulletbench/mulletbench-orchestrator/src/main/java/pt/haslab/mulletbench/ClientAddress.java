@@ -61,4 +61,8 @@ public class ClientAddress {
             }
         }
     }
+
+    public boolean containsClient(String clientID) {
+        return clients.containsKey(clientID);
+    }
 }

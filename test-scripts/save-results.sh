@@ -13,7 +13,7 @@ fi
 echo "Clearing data folder" && rm -rf $PLOT_FOLDER/data && mkdir $PLOT_FOLDER/data
 echo "Clearing images folder" && rm -rf $PLOT_FOLDER/images && mkdir $PLOT_FOLDER/images
 echo "Copying test results" && cp $ORCH_FOLDER/results/$RESULTS_FOLDER/* $PLOT_FOLDER/data
-echo "Generating plots for test $RESULTS_FOLDER" && cd $PLOT_FOLDER && python3.9 plot.py
+echo "Generating plots for test $RESULTS_FOLDER" && cd $PLOT_FOLDER && python3 plot.py
 mkdir -p $PLOT_FOLDER/results/$IDENTIFIER/$TEST_PATH
 echo "Moving test data to $IDENTIFIER/$TEST_PATH" && mv $PLOT_FOLDER/data $PLOT_FOLDER/results/$IDENTIFIER/$TEST_PATH
 echo "Moving test plots to $IDENTIFIER/$TEST_PATH" && mv $PLOT_FOLDER/images $PLOT_FOLDER/results/$IDENTIFIER/$TEST_PATH

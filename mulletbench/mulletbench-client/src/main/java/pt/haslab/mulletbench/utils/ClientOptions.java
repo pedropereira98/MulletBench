@@ -1,19 +1,19 @@
 package pt.haslab.mulletbench.utils;
 
-import java.io.Reader;
-
-import pt.haslab.mulletbench.ResourceAccess;
-import pt.haslab.mulletbench.WorkloadType;
-
 import java.io.IOException;
+import java.io.Reader;
 
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
+import pt.haslab.mulletbench.ResourceAccess;
+import pt.haslab.mulletbench.WorkloadType;
+
 public class ClientOptions {
 
     public String clientId;
+    public String clientAddress = "127.0.0.1";
     public String orchestratorAddress = "127.0.0.1";
 
     public int orchestratorPort = 27205;

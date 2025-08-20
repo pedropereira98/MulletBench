@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import pt.haslab.mulletbench.utils.OrchestratorOptions;
 
 public final class OrchestratorApp {

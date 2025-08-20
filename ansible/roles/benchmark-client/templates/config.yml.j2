@@ -1,5 +1,6 @@
 clientId: {{ inventory_hostname }}
-orchestratorAddress: {{ orchestrator_ip }} 
+clientAddress: {{ ansible_host }}
+orchestratorAddress: {{ orchestrator_ip }}
 dataFile: {{ data_file }}
 dataset: {{ dataset }} #dataset name (Accel or GPSMPU)
 target: {{ database }}
@@ -53,7 +54,7 @@ query:
   downsampleMaxPercent: {{ ranges.downsample.percentage.max }}
   {% endif -%}
   
-  {% if ranges.aggregation.range is defined -%}
+  {% if ranges.downsample.range is defined -%}
   downsampleMinRange: {{ ranges.downsample.range.min }}
   downsampleMaxRange: {{ ranges.downsample.range.max }}
   {% endif -%}

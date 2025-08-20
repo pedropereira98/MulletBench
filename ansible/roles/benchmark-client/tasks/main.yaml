@@ -5,6 +5,7 @@
     name:
       - pcp
   become: true
+  throttle: 1
   when: monitor
 
 - name: Enable and start pmcd and pmlogger services

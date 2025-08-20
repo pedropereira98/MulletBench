@@ -80,7 +80,6 @@ public class BenchmarkClient {
         try {
             objOut.writeObject(message);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             logger.error("Failed to send " + message.toString() + " message to orchestrator");
             e.printStackTrace();
         }
@@ -91,7 +90,7 @@ public class BenchmarkClient {
         logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " " + orchestratorSocket.getPort());
 
         this.objOut = new ObjectOutputStream(new BufferedOutputStream(orchestratorSocket.getOutputStream())); // better for larger writes
-        this.objOut.writeObject(options.clientId);
+        this.objOut.writeObject(options.clientId + ";" + options.clientAddress);
         this.objOut.flush();
         this.objIn = new ObjectInputStream(orchestratorSocket.getInputStream());
         logger.debug("Wrote object with " + options.clientId);
@@ -248,10 +247,11 @@ public class BenchmarkClient {
 
         try {
 
-            Instant[] startEndRange = getQueryRange(databaseConnectorFactory.getInstance(), datasetProcessor);
-
-            tc.setStart(startEndRange[0]);
-            tc.setEnd(startEndRange[1]);
+            if (!options.currentTime) {
+                Instant[] queryRange = getQueryRange(databaseConnectorFactory.getInstance(), datasetProcessor);
+                tc.setStart(queryRange[0]);
+                tc.setEnd(queryRange[1]);
+            }
 
             for (int i = 0; i < options.numWorkers; i++) {
                 if (!options.sharedConnection) {
