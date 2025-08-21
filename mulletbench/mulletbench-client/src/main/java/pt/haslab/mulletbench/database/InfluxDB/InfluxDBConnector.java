@@ -79,7 +79,7 @@ public class InfluxDBConnector implements DatabaseConnector {
 
             return resultStrings;
         } catch (Exception e){
-            logger.error("Exception while querying");
+            logger.error("Exception while querying" + e.getMessage());
             throw new FailedQueryException(e.getMessage());
         }
     }
