@@ -23,9 +23,10 @@ TIME = "Total time"
 INSERT_VOLUME = "Inserted volume"
 INSERT_COUNT = "Inserted count"
 INSERT_RATE = "Insertion rate"
-AVG_LATENCY = "Average latency"
+INSERT_LATENCY = "Average latency"
 QUERY_COUNT = "Query count"
 QUERY_RATE = "Query rate"
+QUERY_LATENCY = "Average"
 
 NUM_REGEX = re.compile(r"\d+(\.\d+)?")
 HEADER_REGEX = re.compile(r"[^:]+:\s*\n")
@@ -90,15 +91,27 @@ def get_results_from_file(results_file_path: str) -> dict:
         lines = file.readlines()
     
     results = {}
+    level = 0
 
     cloud_line_flag = False
     global_flag = False
 
+    last_header = ""
     for line in lines:
         if cloud_line_flag:
-            if global_flag and len(line) > 1:
+            if global_flag :
+
+                if len(line) <= 1:
+                    level = 0
+                    continue
+
+                if level > 0:
+                    continue
                 
                 if HEADER_REGEX.match(line):
+                    header = line.split(":")[0]
+                    if header != "Latency breakdown":
+                        level += 1
                     continue
 
                 key, raw_value = line.split(": ")
@@ -171,6 +184,10 @@ def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_
     print("-- Orchestrator Logs --")
     os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}.txt")
 
+def compare(reference_results: list[str], adjusted_results: list[str], key: str):
+    return (adjusted_results[key] / reference_results[key]) - 1
+
+
 def compare_results(reference_results: list[str], adjusted_results: list[str], config_type = WorkloadType.INSERTION) -> float:
     """ Compare the adjusted results with the reference results to determine the difference in performance.
 
@@ -184,11 +201,17 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
     """
 
     if config_type == WorkloadType.INSERTION: # INSERTION workload
-        diff = (adjusted_results[INSERT_RATE] / reference_results[INSERT_RATE]) - 1
+        diff_rate = compare(reference_results, adjusted_results, INSERT_RATE)
+        diff_latency = compare(reference_results, adjusted_results, INSERT_LATENCY)
+        diff = (diff_rate + diff_latency) * 0.5
     elif config_type == WorkloadType.QUERY: # QUERY workload
-        diff = (adjusted_results[QUERY_RATE] / reference_results[QUERY_RATE]) - 1
+        diff_rate = compare(reference_results, adjusted_results, QUERY_RATE)
+        diff_latency = compare(reference_results, adjusted_results, QUERY_LATENCY)
+        diff = (diff_rate + diff_latency) * 0.5
     else: # MIXED workload
-        diff = (adjusted_results[INSERT_RATE] / reference_results[INSERT_RATE] + adjusted_results[QUERY_RATE] / reference_results[QUERY_RATE]) * 0.5 - 1
+        diff_insert = compare(reference_results, adjusted_results, INSERT_RATE) + compare(reference_results, adjusted_results, INSERT_LATENCY)
+        diff_query = compare(reference_results, adjusted_results, QUERY_RATE) + compare(reference_results, adjusted_results, QUERY_LATENCY)
+        diff = (diff_insert + diff_query) * 0.25
 
     return round(diff, MAX_DECIMAL_PLACES)
 
@@ -260,7 +283,7 @@ def main():
         os.makedirs(OUTPUT_PATH)
 
     loaded_config = load_config(args.benchmark_config)
-    print(loaded_config["type"])
+    # print(loaded_config["type"])
 
     # load edge servers from config
     edge_servers: dict = loaded_config["config"]['edgeservers']['hosts']
@@ -285,7 +308,7 @@ def main():
         for key, value in io_limits.items():
             server[f'limited_resources_{key}'] = value
 
-    print(server)
+    # print(server)
 
     num_runs = 0
     prev_diff = -1
