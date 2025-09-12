@@ -1,0 +1,98 @@
+# This file provides an example configuration for the testing phase of a query test with a single cloud server.
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: false
+    shared_dataset: true
+    shared_connection: false
+
+    # iotdb_device_path: "root.gps.mpu.*"
+    # iotdb_version: "1.3.3"
+    # align_by_device: true
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: v2.0
+    benchmark_orchestrator_version: latest
+
+    monitoring_interval: 2sec
+
+    final_monitoring_period_sec: 0
+
+    ansible_connection: ssh
+    home_dir: /home
+    blkio_path: /dev/sda #required for blkio_config (io or bps limiting)
+
+edgeservers:
+cloudservers:
+  hosts:
+    cloud1:
+      ansible_host: 192.168.112.142
+      ansible_user: gsd
+      ansible_connection: ssh
+
+      limited_resources: false
+      monitor: true
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_user: gsd
+      ansible_host: 192.168.112.76
+      ansible_connection: ssh  
+      monitor: true
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 8
+      type: QUERY
+
+      num_loops: 1.333
+      
+      query_count: 192 # total number of queries submitted per worker
+      query_rate: 0.204 # number of queries per second per worker
+      agg_weight: 40 # weight of aggregation queries
+      filter_weight: 0 # weight of filter queries
+      downsample_weight: 20 # weight of downsample queries
+      outlier_filter_weight: 40 # weight of outlier filter queries
+      count_outlier_filter: false
+      filter_z_score: 4.0
+      query_seed: 231920710
+      ranges: # percentage of the dataset to use as query ranges
+        aggregation:
+          percentage:
+            min: 0.1
+            max: 0.5
+          range:
+            min: 5s
+            max: 20m
+        downsample:
+          percentage:
+            min: 0.01
+            max: 0.1
+          range:
+            min: 1m
+            max: 2h
+        outlier_filter:
+          percentage:
+            min: 0.1
+            max: 0.5
+          range:
+            min: 5s
+            max: 20m
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 160
+
+    # orchestrator_ip: 192.168.112.90
+    orchestrator_ip: 10.100.100.190
+    read_timeout: 300

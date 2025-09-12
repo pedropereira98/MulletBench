@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 import json
 
 epoch = datetime.utcfromtimestamp(0)
-images_folder = "results/resource_det_query/downsampling/images/"
-data_folder = "results/resource_det_query/downsampling/"
+images_folder = "results/resource_det_mixed_aws/Aggregation/images/"
+data_folder = "results/resource_det_mixed_aws/Aggregation/"
 metrics_folder = "metrics/"
 monitoring_folder = "monitoring/"
 os.makedirs(images_folder, exist_ok=True)
@@ -19,8 +19,8 @@ os.makedirs(images_folder+metrics_folder, exist_ok=True)
 os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-FORMAT="pdf"
-# FORMAT="png"
+# FORMAT="pdf"
+FORMAT="png"
 
 # CUT = True
 CUT = True
@@ -270,7 +270,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     for label, df in client_dfs.items():
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
-            resample_time = 10.0
+            resample_time = 20.0
             insert_amount = query_groups.get_group("INSERT")['amount']
             insert_throughput = insert_amount.resample(f"{resample_time}s").sum().map(lambda el: el/resample_time).map(lambda el: (el/runs_per_client[label]) if runs_per_client else el)
             insert_throughput.index = insert_throughput.index.map(lambda el: seconds_millis(el) / 60)

@@ -1,0 +1,150 @@
+# This file provides an example configuration for the testing phase of a query test with a single cloud server.
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: true
+    shared_dataset: true
+    shared_connection: false
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: v0.181
+    benchmark_orchestrator_version: v0.181
+
+    monitoring_interval: 2sec
+
+    final_monitoring_period_sec: 30
+
+    ansible_connection: ssh
+    ansible_user: tbag
+    ansible_password: Guimaraes1
+    ansible_become_password: Guimaraes1
+
+    home_dir: /home
+    blkio_path: /dev/sda #required for blkio_config (io or bps limiting)
+
+edgeservers:
+  hosts:
+    edge1:
+      ansible_connection: ssh
+
+      ansible_host: 192.168.1.76
+      ansible_user: joaonovais
+      ansible_password: Guimaraes1
+      ansible_become_password: Guimaraes1
+      ansible_distribution: Ubuntu
+      ansible_distribution_version: 22.04
+
+      limited_resources: false
+      use_resource_profile: false
+      # limited_profile: rpi3
+      limited_resources_cpu: 4
+      limited_resources_mem: 1024 # in MB
+      limited_resources_read_bps: 22.8M #Pi 3 B+ with SD card
+      limited_resources_write_bps: 17.6M #Pi 3 B+ with SD card
+      monitor: true
+
+cloudservers:
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_user: tbag
+      ansible_host: 192.168.1.88
+      ansible_password: Guimaraes1  
+      ansible_become_password: Guimaraes1
+
+      ansible_connection: ssh
+
+      target: edge1
+
+      # data_file: data_1600_accel_watch.txt
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 30
+      type: INSERT
+
+      insert_volume: 144000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+      monitor: true
+
+    client2:
+      stage: 2
+      ansible_user: tbag
+      ansible_host: 192.168.1.88
+      ansible_password: Guimaraes1
+      ansible_become_password: Guimaraes1
+
+      ansible_connection: ssh
+
+      target: edge1
+
+      # data_file: data_1600_accel_watch.txt
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 17
+      type: INSERT
+
+      insert_volume: 96000 # total number of inserted points per worker
+      batch_size: 100 # number of points per batch
+      insert_rate: 1 # number of inserted batches per second per worker
+      monitor: true
+
+    client3:
+      stage: 2
+      ansible_user: tbag
+      ansible_host: 192.168.1.72
+      ansible_password: Guimaraes1
+      ansible_become_password: Guimaraes1
+
+      monitor: true
+
+      target: edge1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 2
+      type: QUERY
+
+      query_count: 240 # total number of queries submitted per worker
+      query_rate: 0.25 # number of queries per second per worker
+      agg_weight: 0 # weight of aggregation queries
+      filter_weight: 0 # weight of filter queries
+      downsample_weight: 100 # weight of downsample queries
+      outlier_filter_weight: 0 # weight of outlier filter queries
+      count_outlier_filter: false
+      filter_z_score: 4.0
+      ranges:
+        aggregation:
+          percentage:
+            min: 0.15
+            max: 0.30
+          
+        downsample:
+          percentage:
+            min: 0.15
+            max: 0.30
+          range:
+            min: 5s
+            max: 20m
+        outlier_filter:
+          percentage:
+            min: 0.05
+            max: 0.15
+
+      query_seed: 21972
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 200
+
+    orchestrator_ip: 192.168.1.72
+    # orchestrator_ip: 10.100.100.190
+    read_timeout: 600
+    write_timeout: 600

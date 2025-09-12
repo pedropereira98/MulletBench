@@ -1,0 +1,96 @@
+# This file provides an example configuration for the testing phase of a query test with a single cloud server.
+all:
+    vars:
+        database: influx #influx or iotdb
+
+        dataset: GPSMPU # Accel or GPSMPU
+        current_time: false
+        shared_dataset: true
+        shared_connection: false
+
+        # iotdb_device_path: "root.gps.mpu.*"
+        # iotdb_version: "1.3.3"
+        # align_by_device: true
+
+        influx_username: influx
+        influx_password: influxpw
+        influx_org: myorg
+        influx_bucket: mybucket
+        influx_token: mytoken
+        influx_port: 8086
+        influx_version: 2.7
+
+        benchmark_client_version: latest
+        benchmark_orchestrator_version: latest
+
+        monitoring_interval: 2sec
+
+        final_monitoring_period_sec: 30
+
+        ansible_connection: ssh
+        ansible_user: tbag
+        ansible_password: Guimaraes1
+
+        home_dir: /home
+        blkio_path: /dev/sda #required for blkio_config (io or bps limiting)
+
+edgeservers:
+    hosts:
+        edge1:
+            ansible_host: 192.168.112.89
+            ansible_user: gsd
+
+            ansible_connection: ssh
+
+            # ansible_host: 192.168.112.40
+            # ansible_user: joaonovais
+            # ansible_password: Guimaraes1
+            # ansible_become_password: Guimaraes1
+            # ansible_distribution: Ubuntu
+            # ansible_distribution_version: 22.04
+
+            limited_resources: true
+            use_resource_profile: false
+            #   limited_profile: rpi3
+            limited_resources_cpu: 0.1246
+            limited_resources_mem: 596 # in MB
+            limited_resources_read_bps: 23.0M
+            limited_resources_read_iops: '2765'
+            limited_resources_write_bps: 14.5M
+            limited_resources_write_iops: '979'
+            monitor: true
+
+cloudservers:
+benchmark_clients:
+    hosts:
+        client1:
+            stage: 1
+            ansible_user: gsd
+            ansible_host: 192.168.112.76
+            monitor: true
+
+            target: edge1
+
+            data_file: dataset_gps_mpu_left.csv
+            num_workers: 8
+            type: QUERY
+
+            num_loops: 0.5
+
+            query_count: 192 # total number of queries submitted per worker
+            query_rate: 0.25 # number of queries per second per worker
+            agg_weight: 100 # weight of aggregation queries
+            filter_weight: 0 # weight of filter queries
+            downsample_weight: 0 # weight of downsample queries
+            outlier_filter_weight: 0 # weight of outlier filter queries
+            count_outlier_filter: false
+            filter_z_score: 4.0
+
+
+    vars:
+        max_memory: 4G # max heap memory for the JVM for each client instance
+        fjp_parallelism: 200
+
+        # orchestrator_ip: 192.168.115.249
+        orchestrator_ip: 192.168.112.90
+        read_timeout: 6000

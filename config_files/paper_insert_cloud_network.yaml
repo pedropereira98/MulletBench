@@ -1,0 +1,152 @@
+# This file provides an example configuration for the testing phase of a query test with a single cloud server.
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: false
+    shared_dataset: true
+    shared_connection: false
+
+    # iotdb_device_path: "root.gps.mpu.*"
+    # iotdb_version: "1.3.3"
+    # align_by_device: true
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: latest
+    benchmark_orchestrator_version: latest
+
+    monitoring_interval: 2sec
+
+    final_monitoring_period_sec: 0
+
+    ansible_connection: ssh
+    home_dir: /home
+    blkio_path: /dev/nvme0n1 #required for blkio_config (io or bps limiting)
+
+edgeservers:
+cloudservers:
+  hosts:
+    cloud1:
+      ansible_host: 192.168.112.142
+      ansible_user: gsd
+      ansible_connection: ssh
+
+      # network_sim:
+      #   - target: client1
+      #     bandwidth: 142.6063Mbps
+      #   - target: client11
+      #     bandwidth: 142.6063Mbps
+      #   - target: client2
+      #     bandwidth: 142.6063Mbps
+      #   - target: client21
+      #     bandwidth: 142.6063Mbps
+
+      network_sim:
+        bandwidth: 640Mbps
+
+      limited_resources: false
+
+      monitor: true
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_host: 192.168.112.90
+      ansible_user: gsd
+
+      ansible_connection: ssh
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      network_sim:
+        bandwidth: 120Mbps
+
+      insert_volume: 192000
+      batch_size: 100
+      insert_rate: 3
+      monitor: true
+    
+    client11:
+      stage: 1
+      ansible_host: 192.168.112.7
+      ansible_user: gsd
+
+      ansible_connection: ssh
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      network_sim:
+        bandwidth: 120Mbps
+
+      insert_volume: 192000
+      batch_size: 100
+      insert_rate: 3
+      monitor: true
+
+
+
+    client2:
+      stage: 1
+      ansible_host: 192.168.112.87
+      ansible_user: gsd
+
+      ansible_connection: ssh
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      network_sim:
+        bandwidth: 120Mbps
+
+      insert_volume: 192000
+      batch_size: 100
+      insert_rate: 3
+      monitor: true
+    
+    client21:
+      stage: 1
+      ansible_host: 192.168.112.87
+      ansible_user: gsd
+
+      ansible_connection: ssh
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 80
+      type: INSERT
+
+      network_sim:
+        bandwidth: 120Mbps
+
+      insert_volume: 192000
+      batch_size: 100
+      insert_rate: 3
+      monitor: true
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 160
+
+    # orchestrator_ip: 192.168.115.248
+    orchestrator_ip: 10.100.100.190
+    read_timeout: 60

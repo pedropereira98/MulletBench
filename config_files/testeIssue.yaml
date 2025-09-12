@@ -1,0 +1,95 @@
+# This file provides an example configuration for the testing phase of a query test with a single cloud server.
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: true
+    shared_dataset: true
+    shared_connection: false
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: v1.0
+    benchmark_orchestrator_version: v1.0
+
+    final_monitoring_period_sec: 60
+
+    monitoring_interval: 2sec
+
+    ansible_connection: ssh
+    ansible_user: gsd
+
+    home_dir: /home
+    blkio_path: /dev/sda #required for blkio_config (io or bps limiting)
+
+edgeservers:
+cloudservers:
+  hosts:
+    cloud1:
+      ansible_host: 192.168.112.142
+      ansible_connection: ssh
+      ansible_user: gsd
+
+      limited_resources: false
+      monitor: true
+
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_host: 192.168.112.90
+      ansible_connection: ssh
+      ansible_user: gsd
+
+      
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 10
+      type: INSERT
+
+      insert_volume: 10000
+      batch_size: 100
+      insert_rate: 10
+      monitor: true
+
+    client2:
+      stage: 1
+      ansible_host: 192.168.112.89
+      ansible_connection: ssh
+      ansible_user: gsd
+
+      target: cloud1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 2
+      type: QUERY
+
+      num_loops: 1
+
+      query_count: 10 # total number of queries submitted per worker
+      query_rate: 0.5 # number of queries per second per worker
+      agg_weight: 40 # weight of aggregation queries
+      filter_weight: 0 # weight of filter queries
+      downsample_weight: 20 # weight of downsample queries
+      outlier_filter_weight: 40 # weight of outlier filter queries
+      count_outlier_filter: false
+      filter_z_score: 6.0
+
+      query_seed: 314159
+      monitor: true
+    
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 100
+
+    orchestrator_ip: 192.168.115.91
+    read_timeout: 60

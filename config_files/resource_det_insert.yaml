@@ -1,0 +1,94 @@
+all:
+  vars:
+    database: influx #influx or iotdb
+
+    dataset: GPSMPU # Accel or GPSMPU
+    current_time: false
+    shared_dataset: true
+    shared_connection: false
+
+    # iotdb_device_path: "root.gps.mpu.*"
+    # iotdb_version: "1.3.3"
+    # align_by_device: true
+
+    influx_username: influx
+    influx_password: influxpw
+    influx_org: myorg
+    influx_bucket: mybucket
+    influx_token: mytoken
+    influx_port: 8086
+    influx_version: 2.7
+
+    benchmark_client_version: latest
+    benchmark_orchestrator_version: latest
+
+    monitoring_interval: 2sec
+
+    final_monitoring_period_sec: 30
+
+    ansible_connection: ssh
+    ansible_user: tbag
+    ansible_password: Guimaraes1
+
+    home_dir: /home
+    blkio_path: /dev/sda #required for blkio_config (io or bps limiting)
+
+edgeservers:
+  hosts:
+    edge1:
+      ansible_host: 192.168.112.89
+      ansible_user: gsd
+
+      ansible_connection: ssh
+
+      # ansible_host: 192.168.112.40
+      # ansible_user: joaonovais
+      # ansible_password: Guimaraes1
+      # ansible_become_password: Guimaraes1
+      # ansible_distribution: Ubuntu
+      # ansible_distribution_version: 22.04
+
+      limited_resources: false
+      use_resource_profile: false
+      limited_resources_cpu: 0.54759
+      limited_resources_mem: 576
+      limited_resources_read_bps: 22.8M
+      limited_resources_read_iops: 2300
+      limited_resources_write_bps: 17.6M
+      limited_resources_write_iops: 2177
+      monitor: true
+
+cloudservers:
+benchmark_clients:
+  hosts:
+    client1:
+      stage: 1
+      ansible_host: 192.168.112.76
+      ansible_user: gsd
+
+      # ansible_host: 192.168.1.112
+      # ansible_user: core
+      # ansible_port: 3022
+      # ansible_password: core
+      # ansible_become_password: core
+
+      ansible_connection: ssh
+
+      target: edge1
+
+      data_file: dataset_gps_mpu_left.csv
+      num_workers: 65
+      type: INSERT
+
+      insert_volume: 72000
+      batch_size: 100
+      insert_rate: 1
+      monitor: true
+      gzip: true
+
+  vars:
+    max_memory: 4G # max heap memory for the JVM for each client instance
+    fjp_parallelism: 100
+
+    orchestrator_ip: 192.168.112.90
+    read_timeout: 60
