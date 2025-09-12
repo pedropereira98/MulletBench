@@ -185,6 +185,9 @@ def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_
     os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}.txt")
 
 def compare(reference_results: list[str], adjusted_results: list[str], key: str):
+    """
+
+    """
     return (adjusted_results[key] / reference_results[key]) - 1
 
 
@@ -326,7 +329,6 @@ def main():
 
         comparation = compare_results(reference_results, run_results, loaded_config['type'])
 
-        # print(f"\nreferece_insert_rate / run_insert_rate = {comparation}\n")
         print(f"\tValue of difference: {comparation}")
 
         if  abs(comparation) < STOP_THRESHOLD:

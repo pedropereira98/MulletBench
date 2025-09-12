@@ -9,6 +9,9 @@ type: {{ type }} #INSERT or QUERY
 currentTime: {{ current_time }} # if the benchmark is to use the current time for insertions and queries instead of the dataset timestamps
 sharedDataset: {{ shared_dataset }} # loads whole dataset into memory (shared for all workers) instead of iterating
 sharedConnection: {{ shared_connection }}
+{% if dump_queries is defined %}
+dumpQueries: {{ dump_queries }} # dumps all generated queries into a file
+{% endif %}
 {% if type == "INSERT" -%}
 insertion:
   workerSectionSize: {{ insert_volume }}

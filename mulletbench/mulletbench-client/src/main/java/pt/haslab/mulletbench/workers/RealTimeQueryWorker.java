@@ -1,5 +1,7 @@
 package pt.haslab.mulletbench.workers;
 
+import java.io.FileNotFoundException;
+
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.queries.queryGenerators.QueryGenerator;
@@ -14,13 +16,13 @@ public class RealTimeQueryWorker extends QueryWorker {
         return queryGenerator.generateQuery();
     }
 
-    private RealTimeQueryWorker(DatabaseConnector connector, String clientId, float rate, int count, Stats stats, QueryGenerator queryGenerator, int workerNumber) {
-        super(connector, stats, clientId, workerNumber, rate, count);
+    private RealTimeQueryWorker(DatabaseConnector connector, String clientId, float rate, int count, boolean dumpQueries, Stats stats, QueryGenerator queryGenerator, int workerNumber) throws FileNotFoundException {
+        super(connector, stats, clientId, workerNumber, rate, count, dumpQueries);
         this.queryGenerator = queryGenerator;
         this.queryGenerator.incrementSeed(workerNumber);
     }
 
-    public RealTimeQueryWorker(DatabaseConnector connector, ClientOptions options, Stats stats, QueryGenerator queryGenerator, int workerNumber) {
-        this(connector, options.clientId, options.query.rate, options.query.count, stats, queryGenerator, workerNumber);
+    public RealTimeQueryWorker(DatabaseConnector connector, ClientOptions options, Stats stats, QueryGenerator queryGenerator, int workerNumber) throws FileNotFoundException {
+        this(connector, options.clientId, options.query.rate, options.query.count, options.dumpQueries, stats, queryGenerator, workerNumber);
     }
 }

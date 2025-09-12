@@ -28,6 +28,7 @@ public class ClientOptions {
     public boolean currentTime = true;
     public boolean sharedDataset = true;
     public boolean sharedConnection = true;
+    public boolean dumpQueries = false;
     public int numWorkers = 1;
 
     public InfluxDBOptions influx = new InfluxDBOptions();

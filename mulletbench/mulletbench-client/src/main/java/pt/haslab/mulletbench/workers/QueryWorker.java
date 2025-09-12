@@ -1,10 +1,6 @@
 package pt.haslab.mulletbench.workers;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -18,23 +14,26 @@ import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
 import pt.haslab.mulletbench.queries.Query;
 import pt.haslab.mulletbench.stats.Stats;
+import pt.haslab.mulletbench.utils.QueryDumper;
 
 public abstract class QueryWorker extends Worker {
 
     private final int count;
+    private final boolean dumpQueries;
 
     private final LinkedList<CompletableFuture<?>> futures;
 
     private static final Logger logger = LogManager.getLogger();
 
-    private final String queryFile;
-    private final PrintWriter queryWriter;
+    private final QueryDumper queryDumper;
+
 
     private void measuredQuery(Query query) {
 
-        // print current date and time, timestamp and query to file
-        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        queryWriter.println(date + " " + TimeProvider.getNanoTime() + " " + query.queryString());
+        if (dumpQueries) {
+            // print workerID, timestamp and query to file
+            queryDumper.dumpQuery(this.workerId, query.queryString());
+        }
 
         long before = TimeProvider.getNanoTime();
         logger.info("Starting query");
@@ -99,29 +98,15 @@ public abstract class QueryWorker extends Worker {
         }
 
         logger.info("Finished queries");
-        try {
-            queryWriter.close();
-        } catch (Exception e) {
-        }
+        queryDumper.close();
     }
 
-    public QueryWorker(DatabaseConnector connector, Stats stats, String clientId, int workerNumber, float rate, int count) {
+    public QueryWorker(DatabaseConnector connector, Stats stats, String clientId, int workerNumber, float rate, int count, boolean dumpQueries) throws FileNotFoundException {
         super(connector, stats, clientId, workerNumber);
         this.futures = new LinkedList<>();
         this.rateInterval = (int) (1000 / rate);
         this.count = count;
-
-        // create queries file
-        queryFile = "/home/app/output/queries" + TimeProvider.getNanoTime() + ".txt";
-        try {
-            new File(queryFile).createNewFile();
-        } catch (Exception e) {
-            logger.error("Error creating query file", e);
-        }
-        try {
-            queryWriter = new PrintWriter(queryFile);
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        }
+        this.dumpQueries = dumpQueries;
+        this.queryDumper = dumpQueries ? new QueryDumper() : null;
     }
 }

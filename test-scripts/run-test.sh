@@ -155,4 +155,5 @@ do
         echo "$(date +%T) - Skipping reset"
     fi
     current_run=$((current_run+1))
+    sleep 300
 done
