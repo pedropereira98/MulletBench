@@ -1,5 +1,5 @@
 limited_resources_cpu: '4'
-limited_resources_mem: 4096M
+limited_resources_mem: 4096 # in MB
 limited_resources_read_bps: 44M # with SD card
 limited_resources_write_bps: 40M # with SD card
 limited_resources_read_iops: 2700 # 4k read
