@@ -38,6 +38,10 @@
         state: present
       become: true
 
+    - name: Downgrade requests package to avoid tcconfig errors
+      command: python3 -m pip install --ignore-installed requests==2.31.0 
+      become: true
+
     - name: Remove any previous tcconfig settings
       ansible.builtin.shell:
         "tcdel {{ veth_interface }} -a"

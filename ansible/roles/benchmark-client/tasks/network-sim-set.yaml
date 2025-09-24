@@ -16,7 +16,7 @@
 
 - name: Apply settings for each host
   ansible.builtin.shell:
-    "tcset {{ database }}-{{ inventory_hostname }} --direction incoming --docker --delay {{ latency }} --delay-distro {{ latency_normal_distribution }} --reordering {{ reordering_rate }} --network {{ hostvars[item.target]['ansible_host'] }}/32 --add"
+    "tcset mulletbench-{{ inventory_hostname }} --direction incoming --docker --delay {{ latency }} --delay-distro {{ latency_normal_distribution }} --reordering {{ reordering_rate }} --network {{ hostvars[item.target]['ansible_host'] }}/32 --add"
   become: true
   throttle: 1
   register: apply_settings

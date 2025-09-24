@@ -13,44 +13,44 @@
         msg: "{{ limited_resources_cpu }} and {{ '%dM' | format(limited_resources_mem) }}"
       when: limited_resources and use_resource_profile
 
-# - name: Install pip for all hosts
-#   hosts: all
-#   become: true
-#   tasks:
-#     - name: Install the latest version of pip
-#       ansible.builtin.apt:
-#         name:
-#           - python3-pip
-#         state: latest # This ensures the latest available version is installed
+- name: Install pip for all hosts
+  hosts: all
+  become: true
+  tasks:
+    - name: Install the latest version of pip
+      ansible.builtin.apt:
+        name:
+          - python3-pip
+        state: latest # This ensures the latest available version is installed
 
-# - name: Fix Python3.11 externally managed
-#   hosts: all
-#   become: true
-#   tasks:
-#     - name: get python3 version installed
-#       ansible.builtin.command: python3 --version
-#       register: py3ver
-#       when: ansible_distribution == "Ubuntu" and ansible_distribution_version >= "23"
+- name: Fix Python3.11 externally managed
+  hosts: all
+  become: true
+  tasks:
+    - name: get python3 version installed
+      ansible.builtin.command: python3 --version
+      register: py3ver
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version >= "23"
 
-#     - name: remove EXTERNALLY-MANAGED if we're on Ubuntu 23 and Python >= 3.11
-#       ansible.builtin.file:
-#         path: /usr/lib/python3.11/EXTERNALLY-MANAGED
-#         state: absent
-#       when: 
-#         - py3ver.stdout is defined
-#         - py3ver.stdout | regex_replace('Python ', '') is ansible.builtin.version_compare('3.11', '>=')
+    - name: remove EXTERNALLY-MANAGED if we're on Ubuntu 23 and Python >= 3.11
+      ansible.builtin.file:
+        path: /usr/lib/python3.11/EXTERNALLY-MANAGED
+        state: absent
+      when: 
+        - py3ver.stdout is defined
+        - py3ver.stdout | regex_replace('Python ', '') is ansible.builtin.version_compare('3.11', '>=')
 
-# - name: Install docker and docker compose for all hosts
-#   hosts: all:localhost
-#   become: true
-#   tasks:
-#     - name: Install docker python modules
-#       pip:
-#         executable: pip3
-#         name:
-#           - PyYAML==5.3.1
-#           - docker==6.1.3
-#           - docker-compose>==1.29.2
+- name: Install docker and docker compose for all hosts
+  hosts: all:localhost
+  become: true
+  throttle: 1
+  tasks:
+    - name: Fix pkg_resources is deprecated as an api
+      command: python3 -m pip install --ignore-installed setuptools==65.6.3
+    - name: Downgrade websocket-client to avoid docker-compose issues
+      command: python3 -m pip install --ignore-installed websocket-client==0.59.0
+    - name: Install docker python modules
+      command: python3 -m pip install --ignore-installed PyYAML==5.3.1 docker==6.1.3 docker-compose>==1.29.2
 
 # - name: Install docker for all hosts
 #   hosts: all:localhost

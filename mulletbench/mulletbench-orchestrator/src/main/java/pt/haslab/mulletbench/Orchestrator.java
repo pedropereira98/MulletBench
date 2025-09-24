@@ -96,6 +96,7 @@ public class Orchestrator {
     private void displayResults(){
         // per node, per client, per worker?
 
+        System.out.println("\n\nTest results:");
         System.out.println("\nSummary:\n\nTest Configuration:");
 
         try {
@@ -114,7 +115,6 @@ public class Orchestrator {
         }
 
         int i = 1;
-        System.out.println("\n\nTest results:");
 
         System.out.println("\nStats per stage:");
         for(Stage stage: stages){
