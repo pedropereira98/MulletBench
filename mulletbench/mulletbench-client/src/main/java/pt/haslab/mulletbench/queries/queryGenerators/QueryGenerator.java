@@ -86,6 +86,11 @@ public abstract class QueryGenerator {
         if (this.useSeed) {
             random.setSeed(querySeed);
         }
+        else {
+            this.querySeed = System.currentTimeMillis();
+            options.query.querySeed = this.querySeed;
+            random.setSeed(querySeed);
+        }
         this.aggMinPercent = options.query.aggMinPercent;
         this.aggMaxPercent = options.query.aggMaxPercent;
         this.aggMinRange = options.query.aggMinRange;
