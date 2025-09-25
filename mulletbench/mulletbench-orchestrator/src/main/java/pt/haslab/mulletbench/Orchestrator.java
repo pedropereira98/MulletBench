@@ -1,13 +1,11 @@
 package pt.haslab.mulletbench;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.Reader;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -97,22 +95,27 @@ public class Orchestrator {
         // per node, per client, per worker?
 
         System.out.println("\n\nTest results:");
-        System.out.println("\nSummary:\n\nTest Configuration:");
 
-        try {
-            Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
-        
-            BufferedReader bufferedReader = new BufferedReader(configFileReader);
-
-            String line;
-
-            while ((line = bufferedReader.readLine()) != null) {
-                System.out.println(line);
+        for(Client c: clients){
+            if(c.statsCollector.type == WorkloadType.QUERY){
+                System.out.println("\nClient " + c.name + " query seed: " + c.statsCollector.querySeed);
             }
-            
-        } catch (IOException e) {
-            System.err.println("Error reading configuration file");
         }
+
+        // try {
+        //     Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
+        
+        //     BufferedReader bufferedReader = new BufferedReader(configFileReader);
+
+        //     String line;
+
+        //     while ((line = bufferedReader.readLine()) != null) {
+        //         System.out.println(line);
+        //     }
+            
+        // } catch (IOException e) {
+        //     System.err.println("Error reading configuration file");
+        // }
 
         int i = 1;
 

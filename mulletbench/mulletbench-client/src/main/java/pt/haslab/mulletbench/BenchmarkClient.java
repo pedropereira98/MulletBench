@@ -261,11 +261,13 @@ public class BenchmarkClient {
                 // Generate queries before executing worker
                 if (options.currentTime) {
                     QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
+                    statsCollector.setQuerySeed(queryGenerator.getCurrentSeed());
                     queryGenerator.setStart(System.currentTimeMillis());
                     threadList[i] = new Thread(new RealTimeQueryWorker(databaseConnector, options, statsCollector.getStats(i), queryGenerator, i));
                 } else {
                     QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
                     queryGenerator.incrementSeed(i);
+                    statsCollector.setQuerySeed(queryGenerator.getCurrentSeed());
                     List<Query> workerQueries = queryGenerator.generateQueries(options.query.count);
                     threadList[i] = new Thread(new PreGeneratedQueryWorker(databaseConnector, options, statsCollector.getStats(i), i, workerQueries));
                 }

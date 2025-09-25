@@ -125,6 +125,10 @@ public abstract class QueryGenerator {
         }
     }
 
+    public long getCurrentSeed() {
+        return this.querySeed;
+    }
+
     public static QueryGenerator getInstance(String dataset, QueryBuilder builder, ClientOptions options, TimeController tc, DatasetProcessor datasetProcessor) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
         Class<?> clazz = Class.forName("pt.haslab.mulletbench.queries.queryGenerators.QueryGenerator");
         if (QueryGenerator.class.isAssignableFrom(clazz)) {

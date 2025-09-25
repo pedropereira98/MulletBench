@@ -13,6 +13,7 @@ public class StatsCollector implements Serializable {
     //List of insertion stats for each worker
     public final List<Stats> stats;
     public final WorkloadType type;
+    public long querySeed;
 
     public long start;
     public long end;
@@ -111,5 +112,9 @@ public class StatsCollector implements Serializable {
             stats.stream().filter(s -> s.getCount() > 0).forEach(s -> s.printStats(globalTimeS));
         }
 
+    }
+
+    public void setQuerySeed(long seed){
+        this.querySeed = seed;
     }
 }
