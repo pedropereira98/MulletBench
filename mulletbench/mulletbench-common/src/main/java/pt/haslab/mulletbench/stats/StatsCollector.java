@@ -84,6 +84,7 @@ public class StatsCollector implements Serializable {
     
             System.out.println();
             System.out.println("Global stats:");
+            System.out.println("Random Seed used: " + querySeed);
             System.out.println("Total global time: " + globalTimeMS + "ms");
             System.out.println("Total query time: " + queryTimeMS + "ms");
             
