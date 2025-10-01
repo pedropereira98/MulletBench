@@ -1,5 +1,5 @@
 
-from json import load
+import json
 import sys
 import os
 import yaml
@@ -38,6 +38,9 @@ argParser.add_argument("-m", "--monitor-file-path", help="Path to the file conta
 argParser.add_argument("-d", "--disk-io-limits", help="Path to the file containing the disk I/O limits to use")
 argParser.add_argument("-i", "--initial-value", help="Value to use for cpu limitation on the first run")
 argParser.add_argument("-r", "--max-runs", help="Maximum number of runs that will take place if threshold value is not hit")
+argParser.add_argument("--cpu-only", help="Only adjust CPU limits, do not adjust Disk I/O limits")
+argParser.add_argument("--alternate", help="Alternate between adjusting CPU and Disk I/O limits")
+argParser.add_argument("--disk-only", help="Only adjust Disk I/O limits, do not adjust CPU limits")
 
 class WorkloadType(Enum):
     """ Enum to represent the type of workload for the benchmark.
@@ -157,7 +160,7 @@ def parse_disk_io_limts(filepath: str) -> dict:
 
     return limits
 
-def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_value: float):
+def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}):
     """ Execute a test run with the given configuration and server settings.
 
     Args:
@@ -167,6 +170,9 @@ def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_
     """
 
     server['limited_resources_cpu'] = cpu_value
+
+    for key, value in io_limits.items():
+        server[key] = value
 
     with open("test_config.yaml", "w") as test_config_file:
         yaml.dump(config, test_config_file, default_flow_style=False, allow_unicode=True)
@@ -218,7 +224,7 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
 
     return round(diff, MAX_DECIMAL_PLACES)
 
-def calculate_next_value(current_cpu_value: float, reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> float:
+def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> float:
     """ Calculate the next CPU value based on the current CPU value and the difference between reference and adjusted results.
 
     Args:
@@ -245,6 +251,34 @@ def calculate_next_value(current_cpu_value: float, reference_results: dict, adju
         diff = 0.8 if diff > 0 else -0.8
 
     return round(current_cpu_value - (diff * current_cpu_value) / divisor, MAX_DECIMAL_PLACES)
+
+def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> dict[str, float]:
+    """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
+
+    Args:
+        current_io_value (dict[str, float]): Current Disk I/O values to adjust
+        reference_results (dict): Results of the reference run
+        adjusted_results (dict): Results of the last adjusted test run
+        prev_diff (float, optional): Difference between the runs on the last adjustment. Defaults to -1.
+        config_type (_type_, optional): The type of the test run. Defaults to WorkloadType.INSERTION.
+
+    Returns:
+        dict[str, float]: The next Disk I/O values to use for the next test run.
+    """
+    
+    divisor = 1
+
+    diff = compare_results(reference_results, adjusted_results, config_type)
+
+    if abs(diff) > 0.2 and abs(diff * 1.5) < 0.8:
+        diff *= 1.5
+    elif prev_diff != -1 and prev_diff * diff < 0:
+        divisor *= 2
+
+    if abs(diff) >= 0.8:
+        diff = 0.8 if diff > 0 else -0.8
+
+    return {key: round(value - (diff * value) / divisor, MAX_DECIMAL_PLACES) for key, value in current_io_value.items()}
 
 
 def monitor_df_from_path(file_path: str) -> pd.DataFrame:
@@ -274,8 +308,176 @@ def monitor_df_from_path(file_path: str) -> pd.DataFrame:
 
     return monitor_df
 
+
+def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
+
+    num_runs = 0
+    prev_diff = -1
+    cpu_value = INITIAL_VALUE
+    disk_adjusts = 0
+    optimal = False
+    last = "disk"
+    if args.initial_value is not None:
+        cpu_value = float(args.initial_value)
+
+    results = []
+
+    while num_runs < MAX_RUNS:
+
+        print(f"\n\n\n\nTest Run with {cpu_value = }\n")
+
+        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value)
+
+        run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
+
+        comparation = compare_results(reference_results, run_results, loaded_config['type'])
+
+        print(f"\tValue of difference: {comparation}")
+
+        if  abs(comparation) < STOP_THRESHOLD:
+            print(f"Optimal value for CPU is {cpu_value}")
+            optimal = True
+            break
+        else:
+            results.append({
+                "cpu": cpu_value,
+                "io": io_limits,
+                "diff": comparation
+            })
+
+        if last == "disk":
+            cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, prev_diff, loaded_config['type'])
+            last = "cpu"
+        else:
+            io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, prev_diff, loaded_config['type'])
+            disk_adjusts += 1
+            for key, value in io_limits.items():
+                server[f'limited_resources_{key}'] = value
+            last = "disk"
+
+        num_runs += 1
+        prev_diff = comparation
+
+    if not optimal:
+        print(f"Could not find optimal value in {MAX_RUNS} runs")
+        best_run = min(results, key=lambda x: abs(x['diff']))
+        print(f"Best run was: { json.dumps(best_run, indent=4) }")
+
+        return best_run['cpu'], best_run['io']
+
+    return cpu_value, io_limits
+
+
+def run_determination_test_cpu(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict, calculate_disk_io: bool = False) -> tuple[float, dict]:
+
+    num_runs = 0
+    prev_diff = -1
+    cpu_value = INITIAL_VALUE
+    optimal = False
+    if args.initial_value is not None:
+        cpu_value = float(args.initial_value)
+
+    results = []
+
+    while num_runs < MAX_RUNS:
+
+        print(f"\n\n\n\nTest Run with {cpu_value = }\n")
+
+        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits)
+
+        run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{cpu_value}.txt")
+
+        comparation = compare_results(reference_results, run_results, loaded_config['type'])
+
+        print(f"\tValue of difference: {comparation}")
+
+        if  abs(comparation) < STOP_THRESHOLD:
+            print(f"Optimal value for CPU is {cpu_value}")
+            optimal = True
+            break
+        else:
+            results.append({
+                "cpu": cpu_value,
+                "diff": comparation
+            })
+
+        cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, prev_diff, loaded_config['type'])
+
+        num_runs += 1
+        prev_diff = comparation
+
+    if not optimal:
+        print(f"Could not find optimal value in {MAX_RUNS} runs")
+        best_run = min(results, key=lambda x: abs(x['diff']))
+        print(f"Best run was: { json.dumps(best_run, indent=4) }")
+
+        if calculate_disk_io:
+            print("Adjusting Disk I/O limits now")
+
+            best_io, optimal_io = run_determination_test_disk_io(args, loaded_config, server, reference_results, io_limits)
+
+            if optimal_io:
+                print(f"Optimal Disk I/O limits found: {json.dumps(best_io, indent=4)}")
+            return best_run, best_io
+    return cpu_value, io_limits
+
+
+def run_determination_test_disk_io(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[dict, bool]:
+    global STOP_THRESHOLD
+
+    STOP_THRESHOLD = 0.02
+
+    num_runs = 0
+    prev_diff = -1
+    disk_adjusts = 0
+    optimal = False
+
+    results = []
+
+    while num_runs < MAX_RUNS:
+
+        print(f"\n\n\n\nTest Run with {io_limits = }\n")
+
+        execute_test_run(loaded_config["config"],  loaded_config['type'], server, server.get('limited_resources_cpu', 1), io_limits)
+
+        run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{server.get('limited_resources_cpu', 1)}-disk-adjusts-{disk_adjusts}.txt")
+
+        comparation = compare_results(reference_results, run_results, loaded_config['type'])
+
+        print(f"\tValue of difference: {comparation}")
+
+        if  abs(comparation) < STOP_THRESHOLD:
+            print(f"Optimal value for Disk I/O is {json.dumps(io_limits, indent=4)}")
+            optimal = True
+            break
+        else:
+            results.append({
+                "io": io_limits,
+                "diff": comparation
+            })
+
+        io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, prev_diff, loaded_config['type'])
+        disk_adjusts += 1
+        for key, value in io_limits.items():
+            server[f'limited_resources_{key}'] = value
+
+        num_runs += 1
+        prev_diff = comparation
+
+    if not optimal:
+        print(f"Could not find optimal value in {MAX_RUNS} runs")
+        best_run = min(results, key=lambda x: abs(x['diff']))
+        print(f"Best run was: { json.dumps(best_run, indent=4) }")
+
+        return best_run, False
+
+    return io_limits, True
+
+
+
+
 def main():
-    global OUTPUT_PATH, MAX_RUNS
+    global OUTPUT_PATH, MAX_RUNS, STOP_THRESHOLD
     
     args = argParser.parse_args() 
 
@@ -286,7 +488,8 @@ def main():
         os.makedirs(OUTPUT_PATH)
 
     loaded_config = load_config(args.benchmark_config)
-    # print(loaded_config["type"])
+
+    print(f"Workload is of type {loaded_config['type'].name}")    
 
     # load edge servers from config
     edge_servers: dict = loaded_config["config"]['edgeservers']['hosts']
@@ -296,6 +499,13 @@ def main():
         exit(1)
 
     server = edge_servers[list(edge_servers.keys())[0]]
+    io_limits = {}
+    io_limits['limited_resources_read_bps'] = server.get('limited_resources_read_bps', None)
+    io_limits['limited_resources_write_bps'] = server.get('limited_resources_write_bps', None)
+    io_limits['limited_resources_read_iops'] = server.get('limited_resources_read_iops', None)
+    io_limits['limited_resources_write_iops'] = server.get('limited_resources_write_iops', None)
+
+
     reference_results = get_results_from_file(args.reference_results)
 
     if args.max_runs is not None:
@@ -312,33 +522,23 @@ def main():
             server[f'limited_resources_{key}'] = value
 
     # print(server)
+    best_cpu, best_io = None, None
 
-    num_runs = 0
-    prev_diff = -1
-    cpu_value = INITIAL_VALUE
-    if args.initial_value is not None:
-        cpu_value = float(args.initial_value)
+    if args.cpu_only:
+        best_cpu, _ = run_determination_test_cpu(args, loaded_config, server, reference_results, io_limits)
+    elif args.disk_only:
+        best_io, _ =run_determination_test_disk_io(args, loaded_config, server, reference_results, io_limits)
+    elif args.alternate:
+        best_cpu, best_io = run_determination_test_alternate(args, loaded_config, server, reference_results, io_limits)
+    else:
+        STOP_THRESHOLD = 0.05
+        best_cpu, best_io = run_determination_test_cpu(args, loaded_config, server, reference_results, io_limits, True)
 
-    while num_runs < MAX_RUNS:
+    cpu_result = "Not Adjusted"
+    if cpu_result is not None:
+        cpu_result = best_cpu
 
-        print(f"\n\n\n\nTest Run with {cpu_value = }\n")
-
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value)
-
-        run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{cpu_value}.txt")
-
-        comparation = compare_results(reference_results, run_results, loaded_config['type'])
-
-        print(f"\tValue of difference: {comparation}")
-
-        if  abs(comparation) < STOP_THRESHOLD:
-            print(f"Optimal value for CPU is {cpu_value}")
-            break
-
-        cpu_value = calculate_next_value(cpu_value, reference_results, run_results, prev_diff, loaded_config['type'])
-
-        num_runs += 1
-        prev_diff = comparation
+    print(f"\n\n\nFinal results are:\nCPU: {best_cpu if best_cpu is not None else 'Not adjusted'}\nDisk I/O: \n\t{'\n'.join([f'{key}: {value}' for key, value in best_io.items()]) if best_io is not None else 'Not adjusted'}")
 
 if __name__ == "__main__":
     main()

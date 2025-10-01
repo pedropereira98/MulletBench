@@ -36,3 +36,4 @@
 - name: Set network simulation
   ansible.builtin.include_tasks:
     "network-sim.yaml"
+  when: network_sim is defined
