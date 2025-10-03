@@ -538,7 +538,13 @@ def main():
     if cpu_result is not None:
         cpu_result = best_cpu
 
-    print(f"\n\n\nFinal results are:\nCPU: {best_cpu if best_cpu is not None else 'Not adjusted'}\nDisk I/O: \n\t{'\n'.join([f'{key}: {value}' for key, value in best_io.items()]) if best_io is not None else 'Not adjusted'}")
+    io_result = "Not adjusted"
+    if best_io is not None:
+        io_result = "\n".join([f"{key}: {value}" for key, value in best_io.items()])
+
+    print(f"\n\n\nFinal results are:\n"
+        f"CPU: {best_cpu if best_cpu is not None else 'Not adjusted'}\n"
+        f"Disk I/O:\n\t{io_result}")
 
 if __name__ == "__main__":
     main()
