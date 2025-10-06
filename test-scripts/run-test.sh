@@ -2,6 +2,7 @@
 
 ANSIBLE_PATH=~/MulletBench/ansible
 NUMBER_RUNS=3
+WARMUP_RUNS=0
 STARTING_RUN=1
 SKIP_SHUTDOWN=false
 DEFAULT_HOSTS_FILE=config.yml
@@ -13,6 +14,7 @@ while getopts "hn:s:t:a:i:cr" flag; do
             echo "Options: "
             echo "  -h       Print help"
             echo "  -n       Specify number of runs (default = 3)"
+            echo "  -w       Specify number of warmup runs (default = 0)"
             echo "  -s       Specify starting run number (default = 1)"
             echo "  -a       Specify path to ansible script directory"
             echo "  -i       Test identifier"
@@ -28,6 +30,10 @@ while getopts "hn:s:t:a:i:cr" flag; do
         s)
             echo "Starting runs at $OPTARG"
             STARTING_RUN=$OPTARG
+            ;;
+        w)
+            echo "Changing number of warmup runs to $OPTARG"
+            WARMUP_RUNS=$OPTARG
             ;;
         a)
             echo "Using ansible path at $OPTARG"
@@ -79,6 +85,53 @@ if ! test -f "$FULL_HOSTS_PATH"; then
     echo "Test execution failed - $FULL_HOSTS_PATH does not exists"
     exit 1
 fi
+
+current_run_warmup=0
+while [ $current_run_warmup -lt $WARMUP_RUNS ]
+do
+    echo "$(date +%T) - Starting warmup run $((current_run_warmup+1)) of $WARMUP_RUNS" && ansible-playbook $ANSIBLE_PATH/playbook.yaml -i $FULL_HOSTS_PATH
+    # Check if orchestrator is running
+    if [ "$( docker container inspect -f '{{.State.Status}}' mulletbench-orchestrator )" == "running" ]
+    then
+        echo "$(date +%T) - Orchestrator is running"
+    else
+        echo "$(date +%T) - Warmup execution failed, please retry" && exit 1
+    fi
+    sleep 5
+    # Check if test has started successfully
+    test_started_max_retries=20
+    retries=0
+    while [ "$(docker logs --tail 20 mulletbench-orchestrator | awk '/All clients started/ {print $0}' | wc -l)" -le 0 ]
+    do
+        if [ $retries -le $test_started_max_retries ]
+        then
+            retries=$((retries+1))
+            sleep 10
+        else
+            echo "$(date +%T) - Warmup execution failed, please retry" && exit 2
+            exit 1
+        fi
+    done
+    echo "$(date +%T) - Warmup is running"
+    # check if orchestrator has finished
+    orch_finished=0
+    while [ $orch_finished == 0 ]
+    do
+        sleep 10
+        if [ "$( docker container inspect -f '{{.State.Status}}' mulletbench-orchestrator )" == "exited" ]
+        then 
+            orch_finished=1
+        fi
+    done
+    echo "$(date +%T) - Warmup is finished"
+    if [ "$SKIP_SHUTDOWN" = false ]; then
+        echo "$(date +%T) - Resetting config" && ansible-playbook $ANSIBLE_PATH/shutdown-playbook.yaml -i $FULL_HOSTS_PATH -t hard-reset
+    else
+        echo "$(date +%T) - Skipping reset"
+    fi
+    current_run_warmup=$((current_run_warmup+1))
+    sleep 300
+done
 
 current_run=$STARTING_RUN
 while [ $current_run -le $LAST_RUN ]
