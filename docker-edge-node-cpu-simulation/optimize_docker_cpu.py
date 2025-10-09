@@ -495,14 +495,16 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
         best_run = min(results, key=lambda x: abs(x['diff']))
         print(f"Best run was: { json.dumps(best_run, indent=4) }")
 
-        if calculate_disk_io:
-            print("Adjusting Disk I/O limits now")
+    if calculate_disk_io:
+        print("Adjusting Disk I/O limits now")
 
-            best_io, optimal_io = run_determination_test_disk_io(args, loaded_config, server, reference_results, io_limits)
+        best_io, optimal_io = run_determination_test_disk_io(args, loaded_config, server, reference_results, io_limits)
 
-            if optimal_io:
-                print(f"Optimal Disk I/O limits found: {json.dumps(best_io, indent=4)}")
-            return best_run, best_io
+        if optimal_io:
+            print(f"Optimal Disk I/O limits found: {json.dumps(best_io, indent=4)}")
+    
+        return best_run, best_io
+    
     return cpu_value, io_limits
 
 
