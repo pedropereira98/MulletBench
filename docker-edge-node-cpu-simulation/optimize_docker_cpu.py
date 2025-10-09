@@ -261,7 +261,6 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
         current_cpu_value (float): Current CPU value to adjust
         reference_results (dict): Results of the reference run
         adjusted_results (dict): Results of the last adjusted test run
-        prev_diff (float, optional): Difference between the runs on the last adjustment. Defaults to -1.
         config_type (_type_, optional): The type of the test run. Defaults to WorkloadType.INSERTION.
 
     Returns:
@@ -297,14 +296,13 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
 
     return round(next_cpu, MAX_DECIMAL_PLACES)
 
-def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> dict[str, float]:
+def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> dict[str, float]:
     """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
 
     Args:
         current_io_value (dict[str, float]): Current Disk I/O values to adjust
         reference_results (dict): Results of the reference run
         adjusted_results (dict): Results of the last adjusted test run
-        prev_diff (float, optional): Difference between the runs on the last adjustment. Defaults to -1.
         config_type (_type_, optional): The type of the test run. Defaults to WorkloadType.INSERTION.
 
     Returns:
@@ -396,7 +394,6 @@ def monitor_df_from_path(file_path: str) -> pd.DataFrame:
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
 
     num_runs = 0
-    prev_diff = -1
     cpu_value = INITIAL_VALUE
     disk_adjusts = 0
     optimal = False
@@ -433,14 +430,13 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
             cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
             last = "cpu"
         else:
-            io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, prev_diff, loaded_config['type'])
+            io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, loaded_config['type'])
             disk_adjusts += 1
             for key, value in io_limits.items():
                 server[f'limited_resources_{key}'] = value
             last = "disk"
 
         num_runs += 1
-        prev_diff = comparation
 
     if not optimal:
         print(f"Could not find optimal value in {MAX_RUNS} runs")
@@ -455,7 +451,6 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
 def run_determination_test_cpu(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict, calculate_disk_io: bool = False) -> tuple[float, dict]:
 
     num_runs = 0
-    prev_diff = -1
     cpu_value = INITIAL_VALUE
     optimal = False
     if args.initial_value is not None:
@@ -488,7 +483,6 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
         cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
 
         num_runs += 1
-        prev_diff = comparation
 
     if not optimal:
         print(f"Could not find optimal value in {MAX_RUNS} runs")
@@ -514,7 +508,6 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
     STOP_THRESHOLD = 0.02
 
     num_runs = 0
-    prev_diff = -1
     disk_adjusts = 0
     optimal = False
 
@@ -542,13 +535,12 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
                 "diff": comparation
             })
 
-        io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, prev_diff, loaded_config['type'])
+        io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, loaded_config['type'])
         disk_adjusts += 1
         for key, value in io_limits.items():
             server[f'limited_resources_{key}'] = value
 
         num_runs += 1
-        prev_diff = comparation
 
     if not optimal:
         print(f"Could not find optimal value in {MAX_RUNS} runs")
