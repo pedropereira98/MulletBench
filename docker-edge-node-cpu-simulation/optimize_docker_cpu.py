@@ -44,9 +44,9 @@ argParser.add_argument("-m", "--monitor-file-path", help="Path to the file conta
 argParser.add_argument("-d", "--disk-io-limits", help="Path to the file containing the disk I/O limits to use")
 argParser.add_argument("-i", "--initial-value", help="Value to use for cpu limitation on the first run")
 argParser.add_argument("-r", "--max-runs", help="Maximum number of runs that will take place if threshold value is not hit")
-argParser.add_argument("--cpu-only", help="Only adjust CPU limits, do not adjust Disk I/O limits")
-argParser.add_argument("--alternate", help="Alternate between adjusting CPU and Disk I/O limits")
-argParser.add_argument("--disk-only", help="Only adjust Disk I/O limits, do not adjust CPU limits")
+argParser.add_argument("--cpu-only", action='store_true', help="Only adjust CPU limits, do not adjust Disk I/O limits")
+argParser.add_argument("--alternate", action='store_true', help="Alternate between adjusting CPU and Disk I/O limits")
+argParser.add_argument("--disk-only", action='store_true', help="Only adjust Disk I/O limits, do not adjust CPU limits")
 argParser.add_argument("--debug", action='store_true', help="Print debug information")
 
 class WorkloadType(Enum):
