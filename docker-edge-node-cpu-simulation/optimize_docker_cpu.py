@@ -1,5 +1,6 @@
 
 import json
+from sre_constants import IN
 import sys
 import os
 import yaml
@@ -18,6 +19,7 @@ STOP_THRESHOLD = 0.02
 MAX_DECIMAL_PLACES = 5
 INITIAL_VALUE = 1
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+PRINT_DEBUG = False
 
 TIME = "Total time"
 INSERT_VOLUME = "Inserted volume"
@@ -30,6 +32,10 @@ QUERY_LATENCY = "Average"
 
 NUM_REGEX = re.compile(r"\d+(\.\d+)?")
 HEADER_REGEX = re.compile(r"[^:]+:\s*\n")
+DISK_BPS_REGEX = re.compile(r"(\d+\.\d+)\s*(M|G)")
+
+CPU_HISTORY = []
+DISK_IO_HISTORY = []
 
 argParser = argparse.ArgumentParser(prog="optimize_docker_cpu.py")
 argParser.add_argument("reference_results", help="Path to the reference results file")
@@ -41,6 +47,7 @@ argParser.add_argument("-r", "--max-runs", help="Maximum number of runs that wil
 argParser.add_argument("--cpu-only", help="Only adjust CPU limits, do not adjust Disk I/O limits")
 argParser.add_argument("--alternate", help="Alternate between adjusting CPU and Disk I/O limits")
 argParser.add_argument("--disk-only", help="Only adjust Disk I/O limits, do not adjust CPU limits")
+argParser.add_argument("--debug", action='store_true', help="Print debug information")
 
 class WorkloadType(Enum):
     """ Enum to represent the type of workload for the benchmark.
@@ -160,7 +167,7 @@ def parse_disk_io_limts(filepath: str) -> dict:
 
     return limits
 
-def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}):
+def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, disk_adjusts: int = -1):
     """ Execute a test run with the given configuration and server settings.
 
     Args:
@@ -172,7 +179,7 @@ def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_
     server['limited_resources_cpu'] = cpu_value
 
     for key, value in io_limits.items():
-        server[key] = value
+        server[f'limited_resources_{key}'] = value
 
     with open("test_config.yaml", "w") as test_config_file:
         yaml.dump(config, test_config_file, default_flow_style=False, allow_unicode=True)
@@ -180,19 +187,35 @@ def execute_test_run(config: dict, config_type: WorkloadType, server: dict, cpu_
     print("-- Performing Cleanup --")
 
     if config_type != WorkloadType.QUERY:
-        subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
+        if PRINT_DEBUG:
+            subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", shell=True)
+        else:
+            subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
 
     subprocess.call("docker rm --force mulletbench-orchestrator", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)  
 
     print("-- Starting Run --")
-    subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+    if PRINT_DEBUG:
+        subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", shell=True)
+    else:
+        subprocess.call(f"ansible-playbook {ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
 
     print("-- Orchestrator Logs --")
-    os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}.txt")
+    if disk_adjusts != -1:
+        os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
+    else:
+        os.system(f"docker logs --follow mulletbench-orchestrator  | tee {OUTPUT_PATH}optimize-run-{cpu_value}.txt")
 
 def compare(reference_results: list[str], adjusted_results: list[str], key: str):
-    """
+    """ Compare a specific metric between the reference and adjusted results.
 
+    Args:
+        reference_results (list[str]): Results of the reference run
+        adjusted_results (list[str]): Results of the last adjusted test run
+        key (str): The specific metric to compare
+
+    Returns:
+        float: The difference between the adjusted and reference results for the specified metric.
     """
     return (adjusted_results[key] / reference_results[key]) - 1
 
@@ -211,20 +234,27 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
 
     if config_type == WorkloadType.INSERTION: # INSERTION workload
         diff_rate = compare(reference_results, adjusted_results, INSERT_RATE)
-        diff_latency = compare(reference_results, adjusted_results, INSERT_LATENCY)
+        diff_latency = compare(adjusted_results, reference_results, INSERT_LATENCY)
         diff = (diff_rate + diff_latency) * 0.5
     elif config_type == WorkloadType.QUERY: # QUERY workload
         diff_rate = compare(reference_results, adjusted_results, QUERY_RATE)
-        diff_latency = compare(reference_results, adjusted_results, QUERY_LATENCY)
-        diff = (diff_rate + diff_latency) * 0.5
+        # diff_latency = compare(adjusted_results, reference_results, QUERY_LATENCY)
+        # diff = (diff_rate + diff_latency) * 0.5
+        diff = diff_rate
     else: # MIXED workload
-        diff_insert = compare(reference_results, adjusted_results, INSERT_RATE) + compare(reference_results, adjusted_results, INSERT_LATENCY)
-        diff_query = compare(reference_results, adjusted_results, QUERY_RATE) + compare(reference_results, adjusted_results, QUERY_LATENCY)
-        diff = (diff_insert + diff_query) * 0.25
+        metrics_rate = [INSERT_RATE, QUERY_RATE]
+        metrics_latency = [INSERT_LATENCY, QUERY_LATENCY]
+        
+        diff_rate = sum([compare(reference_results, adjusted_results, metric) for metric in metrics_rate]) / len(metrics_rate)
+        diff_latency = sum([compare(adjusted_results, reference_results, metric) for metric in metrics_latency]) / len(metrics_latency)
+        diff = (diff_rate + diff_latency) / 2
+        # diff_insert = compare(reference_results, adjusted_results, INSERT_RATE) + compare(adjusted_results, reference_results, INSERT_LATENCY)
+        # diff_query = compare(reference_results, adjusted_results, QUERY_RATE) + compare(adjusted_results, reference_results, QUERY_LATENCY)
+        # diff = (diff_insert + diff_query) / 4
 
     return round(diff, MAX_DECIMAL_PLACES)
 
-def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> float:
+def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> float:
     """ Calculate the next CPU value based on the current CPU value and the difference between reference and adjusted results.
 
     Args:
@@ -237,20 +267,35 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
     Returns:
         float: The next CPU value to use for the next test run.
     """
+    global CPU_HISTORY
 
     divisor = 1
 
     diff = compare_results(reference_results, adjusted_results, config_type)
 
-    if abs(diff) > 0.2 and abs(diff * 1.5) < 0.8:
-        diff *= 1.5
-    elif prev_diff != -1 and prev_diff * diff < 0:
-        divisor *= 2
-
     if abs(diff) >= 0.8:
         diff = 0.8 if diff > 0 else -0.8
 
-    return round(current_cpu_value - (diff * current_cpu_value) / divisor, MAX_DECIMAL_PLACES)
+    CPU_HISTORY.append((current_cpu_value, diff))
+    CPU_HISTORY.sort(key=lambda x: x[0])
+
+    lower = upper = None
+
+    for i in range(1, len(CPU_HISTORY)):
+        val1, val2 = CPU_HISTORY[i-1], CPU_HISTORY[i]
+        if val1[1] * val2[1] < 0:
+            lower, upper = val1, val2
+            break
+
+    if lower and upper:
+        weight_low = 1 / abs(lower[1])
+        weight_up = 1 / abs(upper[1])
+        next_cpu = (lower[0] * weight_low + upper[0] * weight_up) / (weight_low + weight_up)
+    else:
+        
+        next_cpu = current_cpu_value - (diff * current_cpu_value) / divisor
+
+    return round(next_cpu, MAX_DECIMAL_PLACES)
 
 def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, prev_diff: float = -1, config_type = WorkloadType.INSERTION) -> dict[str, float]:
     """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
@@ -265,20 +310,59 @@ def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_r
     Returns:
         dict[str, float]: The next Disk I/O values to use for the next test run.
     """
+    global DISK_IO_HISTORY
     
     divisor = 1
 
     diff = compare_results(reference_results, adjusted_results, config_type)
 
-    if abs(diff) > 0.2 and abs(diff * 1.5) < 0.8:
-        diff *= 1.5
-    elif prev_diff != -1 and prev_diff * diff < 0:
-        divisor *= 2
-
     if abs(diff) >= 0.8:
         diff = 0.8 if diff > 0 else -0.8
 
-    return {key: round(value - (diff * value) / divisor, MAX_DECIMAL_PLACES) for key, value in current_io_value.items()}
+    DISK_IO_HISTORY.append((current_io_value, diff))
+    DISK_IO_HISTORY.sort(key=lambda x: int(x[0]['write_iops']))
+
+    lower = upper = None
+
+    for i in range(1, len(DISK_IO_HISTORY)):
+        val1, val2 = DISK_IO_HISTORY[i-1], DISK_IO_HISTORY[i]
+        if val1[1] * val2[1] < 0:
+            lower, upper = val1, val2
+
+    next_io_values = {}
+
+    if lower and upper:
+        weight_low = 1 / abs(lower[1])
+        weight_up = 1 / abs(upper[1])
+
+        for (io1, io2) in zip(val[0].items() for val in [val1, val2]):
+            k1, v1 = io1
+            _, v2 = io2
+
+            if "iops" in k1:
+                v1 = int(v1)
+                v2 = int(v2)
+                v = (weight_low * v1 + weight_up * v2) / (weight_low + weight_up)
+                next_io_values[k] = ""+round(v)
+            else:
+                num1, unit1 = DISK_BPS_REGEX.match(v1).groups()
+                num2, _ = DISK_BPS_REGEX.match(v2).groups()
+                v1 = float(num1)
+                v2 = float(num2)
+                v = (weight_low * v1 + weight_up * v2) / (weight_low + weight_up)
+                next_io_values[k] = f"{round(v, MAX_DECIMAL_PLACES)}{unit1}"
+    else:
+
+        for k, val in current_io_value.items():
+            if "iops" in k:
+                val = int(val)
+                next_io_values[k] = ""+round(val - (val * diff) / divisor)
+            else:
+                num, unit = DISK_BPS_REGEX.match(val).groups()
+                num = float(num)
+                next_io_values[k] = f"{round(num - (num * diff) / divisor, MAX_DECIMAL_PLACES)}{unit}"
+
+    return next_io_values
 
 
 def monitor_df_from_path(file_path: str) -> pd.DataFrame:
@@ -346,7 +430,7 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
             })
 
         if last == "disk":
-            cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, prev_diff, loaded_config['type'])
+            cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
             last = "cpu"
         else:
             io_limits = calculate_next_value_disk_io(io_limits, reference_results, run_results, prev_diff, loaded_config['type'])
@@ -401,7 +485,7 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
                 "diff": comparation
             })
 
-        cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, prev_diff, loaded_config['type'])
+        cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
 
         num_runs += 1
         prev_diff = comparation
@@ -438,7 +522,7 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
 
         print(f"\n\n\n\nTest Run with {io_limits = }\n")
 
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, server.get('limited_resources_cpu', 1), io_limits)
+        execute_test_run(loaded_config["config"],  loaded_config['type'], server, server.get('limited_resources_cpu', 1), io_limits, disk_adjusts)
 
         run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{server.get('limited_resources_cpu', 1)}-disk-adjusts-{disk_adjusts}.txt")
 
@@ -477,7 +561,7 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
 
 
 def main():
-    global OUTPUT_PATH, MAX_RUNS, STOP_THRESHOLD
+    global OUTPUT_PATH, MAX_RUNS, STOP_THRESHOLD, PRINT_DEBUG
     
     args = argParser.parse_args() 
 
@@ -486,6 +570,10 @@ def main():
     
     if not os.path.exists(OUTPUT_PATH):
         os.makedirs(OUTPUT_PATH)
+
+    if args.debug is not None and args.debug:
+        print(f"Debug mode is on")
+        PRINT_DEBUG = True
 
     loaded_config = load_config(args.benchmark_config)
 
