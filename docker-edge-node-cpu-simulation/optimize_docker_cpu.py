@@ -293,7 +293,7 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
         
         next_cpu = current_cpu_value - (diff * current_cpu_value) / divisor
 
-    return round(next_cpu, MAX_DECIMAL_PLACES)
+    return max(0.15, round(next_cpu, MAX_DECIMAL_PLACES))
 
 def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> dict[str, float]:
     """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
