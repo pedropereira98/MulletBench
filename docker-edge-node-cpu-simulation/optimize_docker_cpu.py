@@ -1,6 +1,5 @@
 
 import json
-from sre_constants import IN
 import sys
 import os
 import yaml
@@ -44,9 +43,9 @@ argParser.add_argument("-m", "--monitor-file-path", help="Path to the file conta
 argParser.add_argument("-d", "--disk-io-limits", help="Path to the file containing the disk I/O limits to use")
 argParser.add_argument("-i", "--initial-value", help="Value to use for cpu limitation on the first run")
 argParser.add_argument("-r", "--max-runs", help="Maximum number of runs that will take place if threshold value is not hit")
-argParser.add_argument("--cpu-only", action='store_true', help="Only adjust CPU limits, do not adjust Disk I/O limits")
-argParser.add_argument("--alternate", action='store_true', help="Alternate between adjusting CPU and Disk I/O limits")
-argParser.add_argument("--disk-only", action='store_true', help="Only adjust Disk I/O limits, do not adjust CPU limits")
+argParser.add_argument("--cpu-only", help="Only adjust CPU limits, do not adjust Disk I/O limits")
+argParser.add_argument("--alternate", help="Alternate between adjusting CPU and Disk I/O limits")
+argParser.add_argument("--disk-only", help="Only adjust Disk I/O limits, do not adjust CPU limits")
 argParser.add_argument("--debug", action='store_true', help="Print debug information")
 
 class WorkloadType(Enum):
@@ -333,7 +332,7 @@ def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_r
         weight_low = 1 / abs(lower[1])
         weight_up = 1 / abs(upper[1])
 
-        for (io1, io2) in zip(val[0].items() for val in [val1, val2]):
+        for (io1, io2) in zip(lower[0].items(), upper[0].items()):
             k1, v1 = io1
             _, v2 = io2
 
@@ -341,20 +340,20 @@ def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_r
                 v1 = int(v1)
                 v2 = int(v2)
                 v = (weight_low * v1 + weight_up * v2) / (weight_low + weight_up)
-                next_io_values[k] = ""+round(v)
+                next_io_values[k1] = str(round(v))
             else:
                 num1, unit1 = DISK_BPS_REGEX.match(v1).groups()
                 num2, _ = DISK_BPS_REGEX.match(v2).groups()
                 v1 = float(num1)
                 v2 = float(num2)
                 v = (weight_low * v1 + weight_up * v2) / (weight_low + weight_up)
-                next_io_values[k] = f"{round(v, MAX_DECIMAL_PLACES)}{unit1}"
+                next_io_values[k1] = f"{round(v, MAX_DECIMAL_PLACES)}{unit1}"
     else:
 
         for k, val in current_io_value.items():
             if "iops" in k:
                 val = int(val)
-                next_io_values[k] = ""+round(val - (val * diff) / divisor)
+                next_io_values[k] = str(round(val - (val * diff) / divisor))
             else:
                 num, unit = DISK_BPS_REGEX.match(val).groups()
                 num = float(num)
