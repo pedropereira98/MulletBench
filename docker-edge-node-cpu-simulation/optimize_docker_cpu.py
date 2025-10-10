@@ -17,6 +17,10 @@ MAX_RUNS = 10
 STOP_THRESHOLD = 0.02
 MAX_DECIMAL_PLACES = 5
 INITIAL_VALUE = 1
+INITIAL_ADJUST_CPU = 0.5
+MAX_ADJUST_CPU = 0.5
+ADJUST_DIVISOR_CPU = 2
+MIN_CPU_VALUE = 0.15
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 PRINT_DEBUG = False
 
@@ -290,10 +294,11 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
         weight_up = 1 / abs(upper[1])
         next_cpu = (lower[0] * weight_low + upper[0] * weight_up) / (weight_low + weight_up)
     else:
-        
         next_cpu = current_cpu_value - (diff * current_cpu_value) / divisor
 
-    return max(0.15, round(next_cpu, MAX_DECIMAL_PLACES))
+    next_cpu = max(current_cpu_value - MAX_ADJUST_CPU, min(current_cpu_value + MAX_ADJUST_CPU, next_cpu))
+
+    return max(MIN_CPU_VALUE, round(next_cpu, MAX_DECIMAL_PLACES))
 
 def calculate_next_value_disk_io(current_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> dict[str, float]:
     """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
@@ -391,6 +396,7 @@ def monitor_df_from_path(file_path: str) -> pd.DataFrame:
 
 
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
+    global MAX_ADJUST_CPU
 
     num_runs = 0
     cpu_value = INITIAL_VALUE
@@ -401,12 +407,16 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
         cpu_value = float(args.initial_value)
 
     results = []
+    last_adjust = 2
 
     while num_runs < MAX_RUNS:
 
         print(f"\n\n\n\nTest Run with {cpu_value = }\n")
 
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value)
+        if last == "cpu": ## last == cpu -> run cpu test
+            execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value)
+        else:
+            execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits, disk_adjusts)
 
         run_results = get_results_from_file(f"{OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
 
@@ -435,6 +445,13 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
                 server[f'limited_resources_{key}'] = value
             last = "disk"
 
+        last_adjust -= 1
+
+        if last_adjust == 0:
+            MAX_ADJUST_CPU = MAX_ADJUST_CPU / ADJUST_DIVISOR_CPU
+            print(f"\n\n--- {MAX_ADJUST_CPU = } ---")
+            last_adjust = 2
+
         num_runs += 1
 
     if not optimal:
@@ -448,6 +465,7 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
 
 
 def run_determination_test_cpu(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict, calculate_disk_io: bool = False) -> tuple[float, dict]:
+    global MAX_ADJUST_CPU
 
     num_runs = 0
     cpu_value = INITIAL_VALUE
@@ -456,6 +474,7 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
         cpu_value = float(args.initial_value)
 
     results = []
+    last_adjust = 1
 
     while num_runs < MAX_RUNS:
 
@@ -480,6 +499,13 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
             })
 
         cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
+
+        last_adjust -= 1
+
+        if last_adjust == 0:
+            MAX_ADJUST_CPU = MAX_ADJUST_CPU / ADJUST_DIVISOR_CPU
+            print(f"\n\n--- {MAX_ADJUST_CPU = } ---")
+            last_adjust = 1
 
         num_runs += 1
 
