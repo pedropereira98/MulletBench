@@ -1,9 +1,9 @@
 from config import config
 from io_utils.file_parsing import get_results_from_file
 from ansible_runner.executor import execute_test_run
-from compare import compare_results
-from adjust_cpu import calculate_next_value_cpu
-from adjust_disk_io import calculate_next_value_disk_io
+from optimization.compare import compare_results
+from optimization.adjust_cpu import calculate_next_value_cpu
+from optimization.adjust_disk_io import calculate_next_value_disk_io
 import json
 
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:

@@ -1,6 +1,6 @@
 from config import config
 from workload import WorkloadType
-from compare import compare_results
+from optimization.compare import compare_results
 import time
 
 def calculate_next_value_disk_io(current_io_value: dict[str, float], max_io_value: dict[str, float], reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> dict[str, float]:

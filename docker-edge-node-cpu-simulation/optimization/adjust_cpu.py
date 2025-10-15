@@ -1,6 +1,6 @@
 from config import config
 from workload import WorkloadType
-from compare import compare_results
+from optimization.compare import compare_results
 import time
 
 def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> float:
