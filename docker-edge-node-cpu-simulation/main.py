@@ -43,7 +43,7 @@ def main():
     reference_results = get_results_from_file(args.reference_results)
 
     if args.max_runs is not None:
-        MAX_RUNS = int(args.max_runs)
+        config.MAX_RUNS = int(args.max_runs)
 
     if args.monitor_file_path is not None:
         df = monitor_df_from_path(args.monitor_file_path)
@@ -51,7 +51,7 @@ def main():
 
     if args.disk_io_limits is not None:
         io_limits = parse_disk_io_limts(args.disk_io_limits)
-        INITIAL_DISK_IO = io_limits.copy()
+        config.INITIAL_DISK_IO = io_limits.copy()
 
         for key, value in io_limits.items():
             server[f'limited_resources_{key}'] = value
