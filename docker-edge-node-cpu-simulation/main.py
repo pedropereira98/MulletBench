@@ -49,6 +49,9 @@ def main():
         df = monitor_df_from_path(args.monitor_file_path)
         server['limited_resources_mem'] = int(df['RAM'].max())
 
+    if args.initial_value is not None:
+        config.INITIAL_VALUE = float(args.initial_value)
+
     if args.disk_io_limits is not None:
         io_limits = parse_disk_io_limts(args.disk_io_limits)
         config.INITIAL_DISK_IO = io_limits.copy()
