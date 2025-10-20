@@ -30,7 +30,9 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
     if disk_adjusts != -1:
         output_dir = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}-disk-adjusts-{disk_adjusts}")
     else:
-        output_dit = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}")
+        output_dir = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}")
+
+    os.makedirs(output_dir, exist_ok=True)
 
 
     for i in range(config.RUNS_PER_ADJUST):
