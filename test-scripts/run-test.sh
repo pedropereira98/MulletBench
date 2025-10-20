@@ -7,10 +7,10 @@ STARTING_RUN=1
 SKIP_SHUTDOWN=false
 DEFAULT_HOSTS_FILE=config.yml
 NAME=""
-while getopts "hn:s:t:a:i:cr" flag; do
+while getopts "hn:w:s:t:a:i:cr" flag; do
     case $flag in
         h)
-            echo "./run-test.sh [-h] [-n x] [-s x] [-a x] [-r] [-c] -t x"
+            echo "./run-test.sh [-h] [-n x] [-w x] [-s x] [-a x] [-r] [-c] -t x"
             echo "Options: "
             echo "  -h       Print help"
             echo "  -n       Specify number of runs (default = 3)"
