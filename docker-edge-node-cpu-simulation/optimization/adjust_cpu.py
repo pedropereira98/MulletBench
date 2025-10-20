@@ -23,13 +23,13 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
     if abs(diff) >= 0.8:
         diff = 0.8 if diff > 0 else -0.8
 
-    config.CPU_HISTORY.append((current_cpu_value, diff, time.time()))
-    config.CPU_HISTORY.sort(key=lambda x: x[0])
+    config.cpu_history.append((current_cpu_value, diff, time.time()))
+    config.cpu_history.sort(key=lambda x: x[0])
 
     lower = upper = None
 
-    for i in range(1, len(config.CPU_HISTORY)):
-        val1, val2 = config.CPU_HISTORY[i-1], config.CPU_HISTORY[i]
+    for i in range(1, len(config.cpu_history)):
+        val1, val2 = config.cpu_history[i-1], config.cpu_history[i]
         if val1[1] * val2[1] < 0:
             lower, upper = val1, val2
             break

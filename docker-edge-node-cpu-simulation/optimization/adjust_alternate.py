@@ -1,12 +1,9 @@
 from config import config
+from state import state
 from workload import WorkloadType
 from optimization.compare import compare_results
 import time
 import math
-
-ALTERNATE_HISTORY: list[tuple[float, int, float, float]] = [] # (axis,bias,diff,timestamp)
-AXIS_HISTORY: list[tuple[float, int, float]] = [] # (axis,bias,diff)
-KEEP_AXIS = False
 
 def calculate_axis(cpu_value: float, current_disk_multiplier: float):
     return round(cpu_value * current_disk_multiplier, config.MAX_DECIMAL_PLACES)
@@ -53,26 +50,24 @@ def calculate_next_value_alternate(
     Returns:
         tuple[float, dict[str, float], float]: The next CPU and Disk I/O values to use for the next test run, along with the current bias for axis reverse caclulation
     """
-    global ALTERNATE_HISTORY, KEEP_AXIS
-
     divisor = 1
 
     diff = min(max(compare_results(reference_results, adjusted_results, config_type), -0.8), 0.8)
 
     axis_value = calculate_axis(current_cpu_value, current_io_multiplier)
     
-    if KEEP_AXIS:
-        AXIS_HISTORY.sort(key=lambda x: x[1])
+    if state.keep_axis:
+        state.axis_history.sort(key=lambda x: x[1])
         
-        if AXIS_HISTORY[-1][1] <= 0: ## hasn't explored positive bias
+        if state.axis_history[-1][1] <= 0: ## hasn't explored positive bias
             bias = 1
             (cpu, disk) = axis_to_values(axis_value, bias)
             
             return (cpu, disk, bias)
         
-        bias_used = list(map(lambda x: x[1], AXIS_HISTORY)).sort()
+        bias_used = list(map(lambda x: x[1], state.axis_history)).sort()
         
-        best_result = min(AXIS_HISTORY, key=lambda x: x[2])
+        best_result = min(state.axis_history, key=lambda x: x[2])
 
         # if best_result is either the lowest or highest bias, keep going in that direction
         if best_result[1] == min(bias_used):
@@ -94,11 +89,11 @@ def calculate_next_value_alternate(
             current_io_multiplier = disk
             current_bias = bias
             
-            KEEP_AXIS = False
-            AXIS_HISTORY.clear()
+            state.keep_axis = False
+            state.axis_history.clear()
     elif diff <= 0.15:
-        KEEP_AXIS = True
-        AXIS_HISTORY.append(axis_value, 0, diff)
+        state.keep_axis = True
+        state.axis_history.append(axis_value, 0, diff)
         
         bias = -1 # prioritize higher cpu and lower disk
         
@@ -107,13 +102,13 @@ def calculate_next_value_alternate(
         return  (cpu, disk, bias)
 
     
-    ALTERNATE_HISTORY.append((axis_value, current_bias, diff, time.time()))
-    ALTERNATE_HISTORY.sort(key= lambda x: x[0])
+    state.alternate_history.append((axis_value, current_bias, diff, time.time()))
+    state.alternate_history.sort(key= lambda x: x[0])
     
     lower = upper = None
 
-    for i in range(1, len(ALTERNATE_HISTORY)):
-        val1 ,val2 = ALTERNATE_HISTORY[i-1], ALTERNATE_HISTORY[i]
+    for i in range(1, len(state.alternate_history)):
+        val1 ,val2 = state.alternate_history[i-1], state.alternate_history[i]
         
         if val1[2] * val2[2] < 0:
             lower, upper = val1, val2

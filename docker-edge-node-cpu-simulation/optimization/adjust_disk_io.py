@@ -46,8 +46,8 @@ def calculate_next_value_disk_io(current_io_multiplier: float, reference_results
 
     lower = upper = None
 
-    for i in range(1, len(config.DISK_IO_HISTORY)):
-        val1, val2 = config.DISK_IO_HISTORY[i-1], config.DISK_IO_HISTORY[i]
+    for i in range(1, len(state.disk_io_history)):
+        val1, val2 = state.disk_io_history[i-1], state.disk_io_history[i]
         if val1[1] * val2[1] < 0:
             lower, upper = val1, val2
 
