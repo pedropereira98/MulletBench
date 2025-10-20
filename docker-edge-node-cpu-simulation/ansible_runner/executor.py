@@ -26,12 +26,13 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
         yaml.dump(test_config, test_config_file, default_flow_style=False, allow_unicode=True)
 
 
-    output_dir = ""
+    test_name = ""
     if disk_adjusts != -1:
-        output_dir = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}-disk-adjusts-{disk_adjusts}")
+        test_name = f"run-{cpu_value}-disk-adjusts-{disk_adjusts}"
     else:
-        output_dir = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}")
+        test_name = f"run-{cpu_value}"
 
+    output_dir = os.path.join(config.OUTPUT_PATH, test_name)
     os.makedirs(output_dir, exist_ok=True)
 
 
@@ -57,4 +58,4 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
         print("-- Orchestrator Logs --")
         os.system(f"docker logs --follow mulletbench-orchestrator  | tee {os.path.join(output_dir, run)}")
 
-    return output_dir
+    return test_name
