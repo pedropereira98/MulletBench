@@ -1,4 +1,5 @@
 from config import config
+from state import state
 from cli import parse_arguments
 from workload import load_config
 from io_utils.file_parsing import get_results_from_file, parse_disk_io_limts
@@ -38,8 +39,7 @@ def main():
     io_limits['limited_resources_write_bps'] = server.get('limited_resources_write_bps', None)
     io_limits['limited_resources_read_iops'] = server.get('limited_resources_read_iops', None)
     io_limits['limited_resources_write_iops'] = server.get('limited_resources_write_iops', None)
-
-
+    
     reference_results = get_results_from_file(args.reference_results)
 
     if args.max_runs is not None:
@@ -51,6 +51,7 @@ def main():
 
     if args.initial_value is not None:
         config.INITIAL_VALUE = float(args.initial_value)
+        server['limited_resources_cpu'] = config.INITIAL_VALUE
 
     if args.disk_io_limits is not None:
         io_limits = parse_disk_io_limts(args.disk_io_limits)

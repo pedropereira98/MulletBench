@@ -5,13 +5,16 @@ import yaml
 import os
 
 
-def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, disk_adjusts: int = -1):
+def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, disk_adjusts: int = -1) ->  str:
     """ Execute a test run with the given configuration and server settings.
 
     Args:
         config (dict): Description of the configuration to use for the test run
         server (dict): Description of the server configuration to use for the test run
         cpu_value (float): The CPU value to set for the test run
+
+    Returns:
+        str: Name of the test 
     """
 
     server['limited_resources_cpu'] = cpu_value
@@ -22,24 +25,34 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
     with open("test_config.yaml", "w") as test_config_file:
         yaml.dump(test_config, test_config_file, default_flow_style=False, allow_unicode=True)
 
-    print("-- Performing Cleanup --")
 
-    if config_type != WorkloadType.QUERY:
-        if config.PRINT_DEBUG:
-            subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", shell=True)
-        else:
-            subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
-
-    subprocess.call("docker rm --force mulletbench-orchestrator", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)  
-
-    print("-- Starting Run --")
-    if config.PRINT_DEBUG:
-        subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", shell=True)
-    else:
-        subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-
-    print("-- Orchestrator Logs --")
+    output_dir = ""
     if disk_adjusts != -1:
-        os.system(f"docker logs --follow mulletbench-orchestrator  | tee {config.OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
+        output_dir = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}-disk-adjusts-{disk_adjusts}")
     else:
-        os.system(f"docker logs --follow mulletbench-orchestrator  | tee {config.OUTPUT_PATH}optimize-run-{cpu_value}.txt")
+        output_dit = os.path.join(config.OUTPUT_PATH, f"run-{cpu_value}")
+
+
+    for i in range(config.RUNS_PER_ADJUST):
+
+        print("-- Performing Cleanup --")
+
+        if config_type != WorkloadType.QUERY:
+            if config.PRINT_DEBUG:
+                subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", shell=True)
+            else:
+                subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/shutdown-playbook.yaml -i test_config.yaml -t hard-reset", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True) 
+
+        subprocess.call("docker rm --force mulletbench-orchestrator", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)  
+
+        run = f"run-{i+1}.txt"
+        print(f"-- Starting Run {i+1:2} --")
+        if config.PRINT_DEBUG:
+            subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", shell=True)
+        else:
+            subprocess.call(f"ansible-playbook {config.ANSIBLE_PATH}/playbook.yaml -i test_config.yaml", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+
+        print("-- Orchestrator Logs --")
+        os.system(f"docker logs --follow mulletbench-orchestrator  | tee {os.path.join(output_dir, run)}")
+
+    return output_dir

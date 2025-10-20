@@ -7,6 +7,7 @@ class Config:
         self.ANSIBLE_PATH = "~/MulletBench/ansible" # Path to the Ansible playbook directory
         self.OUTPUT_PATH = "outputs/" # Path to the output directory where results will be stored
 
+        self.RUNS_PER_ADJUST = 3
         self.MAX_RUNS = 10
         self.STOP_THRESHOLD = 0.02
         self.MAX_DECIMAL_PLACES = 5
@@ -34,9 +35,6 @@ class Config:
         self.NUM_REGEX = re.compile(r"\d+(\.\d+)?")
         self.HEADER_REGEX = re.compile(r"[^:]+:\s*\n")
         self.DISK_BPS_REGEX = re.compile(r"(\d+\.\d+)\s*(M|G)")
-
-        self.CPU_HISTORY = []
-        self.DISK_IO_HISTORY = []
 
 
 config = Config()

@@ -1,4 +1,5 @@
 from config import config
+import os
 
 def get_results_from_file(results_file_path: str) -> dict:
     """Parse the results file and extract relevant metrics.
@@ -79,3 +80,21 @@ def parse_disk_io_limts(filepath: str) -> dict:
         limits[key.strip()] = value.strip()
 
     return limits
+
+
+def get_results_from_run(run_name: str):
+    folder = os.path.join(config.OUTPUT_PATH, run_name)
+
+    results: list[dict] = []
+
+    for file in os.listdir(folder):
+        result = get_results_from_file(os.path.join(folder, file))
+        results.append(result)
+
+    final = {}
+
+    for key in results[0].keys():
+        agg = [result[key] for result in results]
+        final[key] = sum(agg) / len(agg)
+
+    return final

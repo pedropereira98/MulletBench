@@ -1,9 +1,10 @@
 from config import config
-from io_utils.file_parsing import get_results_from_file
+from io_utils.file_parsing import get_results_from_run
 from ansible_runner.executor import execute_test_run
 from optimization.compare import compare_results
 from optimization.adjust_cpu import calculate_next_value_cpu
-from optimization.adjust_disk_io import calculate_next_value_disk_io
+from optimization.adjust_disk_io import calculate_next_value_disk_io, multiply_disk_io
+from optimization.adjust_alternate import calculate_next_value_alternate
 import json
 
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
@@ -17,15 +18,18 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
 
     results = []
     last_adjust = 2
+    io_multiplier = 1.0
+    bias = 0
 
     while num_runs < config.MAX_RUNS:
 
         current_config_str = json.dumps({"cpu_limit": cpu_value, "io_limits": io_limits}, indent=4)
         print(f"\n\n\n\nTest Run with {current_config_str}\n")
 
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits, disk_adjusts)
+        test_name = execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits, disk_adjusts)
 
-        run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
+        # run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{cpu_value}-disk-adjusts-{disk_adjusts}.txt")
+        run_results = get_results_from_run(test_name)
 
         comparation = compare_results(reference_results, run_results, loaded_config['type'])
 
@@ -42,15 +46,21 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
                 "diff": comparation
             })
 
-        if last == "disk":
-            cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
-            last = "cpu"
-        else:
-            io_limits = calculate_next_value_disk_io(io_limits, config.INITIAL_DISK_IO, reference_results, run_results, loaded_config['type'])
-            disk_adjusts += 1
-            for key, value in io_limits.items():
-                server[f'limited_resources_{key}'] = value
-            last = "disk"
+        # if last == "disk":
+        #     cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
+        #     last = "cpu"
+        # else:
+        #     io_limits = calculate_next_value_disk_io(io_limits, config.INITIAL_DISK_IO, reference_results, run_results, loaded_config['type'])
+        #     disk_adjusts += 1
+        #     for key, value in io_limits.items():
+        #         server[f'limited_resources_{key}'] = value
+        #     last = "disk"
+
+        cpu_value, io_multiplier, bias = calculate_next_value_alternate(cpu_value, io_multiplier, bias, last=="disk", reference_results, run_results, loaded_config["type"])
+        
+        last = last == "disk" and "cpu" or "disk"
+        
+        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
 
         last_adjust -= 1
 
@@ -86,9 +96,10 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
 
         print(f"\n\n\n\nTest Run with {cpu_value = }\n")
 
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits)
+        test_name = execute_test_run(loaded_config["config"],  loaded_config['type'], server, cpu_value, io_limits)
 
-        run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{cpu_value}.txt")
+        # run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{cpu_value}.txt")
+        run_results = get_results_from_run(test_name)
 
         comparation = compare_results(reference_results, run_results, loaded_config['type'])
 
@@ -142,6 +153,7 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
     num_runs = 0
     disk_adjusts = 0
     optimal = False
+    io_multiplier = 1.0
 
     results = []
 
@@ -149,9 +161,10 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
 
         print(f"\n\n\n\nTest Run with {io_limits = }\n")
 
-        execute_test_run(loaded_config["config"],  loaded_config['type'], server, server.get('limited_resources_cpu', 1), io_limits, disk_adjusts)
+        test_name = execute_test_run(loaded_config["config"],  loaded_config['type'], server, server.get('limited_resources_cpu', 1), io_limits, disk_adjusts)
 
-        run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{server.get('limited_resources_cpu', 1)}-disk-adjusts-{disk_adjusts}.txt")
+        # run_results = get_results_from_file(f"{config.OUTPUT_PATH}optimize-run-{server.get('limited_resources_cpu', 1)}-disk-adjusts-{disk_adjusts}.txt")
+        run_results = get_results_from_run(test_name)
 
         comparation = compare_results(reference_results, run_results, loaded_config['type'])
 
@@ -167,10 +180,10 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
                 "diff": comparation
             })
 
-        io_limits = calculate_next_value_disk_io(io_limits, config.INITIAL_DISK_IO, reference_results, run_results, loaded_config['type'])
+        io_multiplier = calculate_next_value_disk_io(io_multiplier, reference_results, run_results, loaded_config['type'])
         disk_adjusts += 1
-        for key, value in io_limits.items():
-            server[f'limited_resources_{key}'] = value
+
+        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
 
         num_runs += 1
 
