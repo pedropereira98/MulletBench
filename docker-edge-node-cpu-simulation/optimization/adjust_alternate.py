@@ -74,23 +74,27 @@ def calculate_next_value_alternate(
             bias = min(bias_used) - 1
             
             (cpu, disk) = axis_to_values(axis_value, bias)
-            return (cpu, disk, bias)
+            
+            if cpu >= 0.15 and disk >= 0.1:
+                return (cpu, disk, bias)
         elif best_result[1] == max(bias_used):
             bias = max(bias_used) + 1
             
             (cpu, disk) = axis_to_values(axis_value, bias)
-            return (cpu, disk, bias)
-        else:
-            _, bias, diff = best_result
             
-            (cpu, disk) = axis_to_values(axis_value, bias)
-            
-            current_cpu_value = cpu
-            current_io_multiplier = disk
-            current_bias = bias
-            
-            state.keep_axis = False
-            state.axis_history.clear()
+            if disk <= 1:
+                return (cpu, disk, bias)
+
+        _, bias, diff = best_result
+        
+        (cpu, disk) = axis_to_values(axis_value, bias)
+        
+        current_cpu_value = cpu
+        current_io_multiplier = disk
+        current_bias = bias
+        
+        state.keep_axis = False
+        state.axis_history.clear()
     elif diff <= 0.15:
         state.keep_axis = True
         state.axis_history.append(axis_value, 0, diff)
@@ -99,7 +103,8 @@ def calculate_next_value_alternate(
         
         cpu, disk = axis_to_values(axis_value, bias)
         
-        return  (cpu, disk, bias)
+        if cpu >= 0.15 and 0.1 <= disk <= 1.0:
+            return  (cpu, disk, bias)
 
     
     state.alternate_history.append((axis_value, current_bias, diff, time.time()))
@@ -139,6 +144,9 @@ def calculate_next_value_alternate(
         if disk > 1:
             next_disk = 1
             next_cpu = solve_axis(axis_value, 1.0)
+        elif disk <= 0.1:
+            next_disk = 0.1
+            next_cpu = solve_axis(axis_value, 0.1)
         else:
             next_disk = disk
 

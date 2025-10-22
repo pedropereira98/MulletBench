@@ -61,4 +61,4 @@ def calculate_next_value_disk_io(current_io_multiplier: float, reference_results
     else:
         next_io_multiplier = current_io_multiplier - (diff * current_io_multiplier) / divisor
 
-    return max(min(1.0, next_io_multiplier), 0)
+    return max(min(1.0, next_io_multiplier), 0.1)
