@@ -97,7 +97,7 @@ def calculate_next_value_alternate(
         state.axis_history.clear()
     elif diff <= 0.15:
         state.keep_axis = True
-        state.axis_history.append(axis_value, 0, diff)
+        state.axis_history.append((axis_value, 0, diff))
         
         bias = -1 # prioritize higher cpu and lower disk
         
