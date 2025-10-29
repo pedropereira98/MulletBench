@@ -5,6 +5,8 @@ from workload import load_config
 from io_utils.file_parsing import get_results_from_file, parse_disk_io_limts
 from io_utils.monitor import monitor_df_from_path
 from optimization.determinator import run_determination_test_cpu, run_determination_test_disk_io, run_determination_test_alternate
+from optimization.adjust_alternate import axis_to_values
+from optimization.adjust_disk_io import multiply_disk_io
 import json
 import os
 
@@ -74,18 +76,26 @@ def main():
         best_cpu, best_io = run_determination_test_cpu(args, loaded_config, server, reference_results, io_limits, True)
 
     cpu_result = "Not Adjusted"
-    if cpu_result is not None:
-        cpu_result = best_cpu
-
-        cpu_history_str = json.dumps([{"cpu":cpu, "diff":diff, "timestamp":ts} for (cpu, diff, ts) in filter(lambda x: x[0:2], sorted(config.CPU_HISTORY, key=lambda x: x[2]))], indent=4)
-        print(f"\n\nCPU Adjust History:\n{cpu_history_str}")
-
     io_result = "Not adjusted"
-    if best_io is not None:
-        io_result = "\n".join([f"{key}: {value}" for key, value in best_io.items()])
+    if args.alternate:
+        cpu_result = best_cpu
+        io_result = best_io
 
-        disk_history_str = json.dumps([{"io_val":io_val, "diff":diff, "timestamp":ts} for (io_val, diff, ts) in filter(lambda x: x[0:2], sorted(config.DISK_IO_HISTORY, key=lambda x: x[2]))], indent=4)
-        print(f"\n\nDisk I/O Adjust History:\n{disk_history_str}")
+        alternate_history_modified = map(lambda x: (axis_to_values(x[0], x[1]), x[2], x[3]), state.alternate_history)
+        alternate_history_str = json.dumps([{"cpu": cpu, "io_vals": multiply_disk_io(io_mult, config.INITIAL_DISK_IO), "diff": diff, "timestamp": ts} for ((cpu, io_mult), diff, ts) in filter(lambda x: x[0:2], sorted(alternate_history_modified, key= lambda x: x[2]))], indent=4)
+        print(f"\n\nAdjust History:\n{alternate_history_str}")
+    else:
+        if cpu_result is not None:
+            cpu_result = best_cpu
+
+            cpu_history_str = json.dumps([{"cpu":cpu, "diff":diff, "timestamp":ts} for (cpu, diff, ts) in filter(lambda x: x[0:2], sorted(state.cpu_history, key=lambda x: x[2]))], indent=4)
+            print(f"\n\nCPU Adjust History:\n{cpu_history_str}")
+
+        if best_io is not None:
+            io_result = "\n".join([f"{key}: {value}" for key, value in best_io.items()])
+
+            disk_history_str = json.dumps([{"io_val":io_val, "diff":diff, "timestamp":ts} for (io_val, diff, ts) in filter(lambda x: x[0:2], sorted(state.disk_io_history, key=lambda x: x[2]))], indent=4)
+            print(f"\n\nDisk I/O Adjust History:\n{disk_history_str}")
 
     print(f"\n\n\nFinal results are:\n"
         f"CPU: {best_cpu if best_cpu is not None else 'Not adjusted'}\n"
