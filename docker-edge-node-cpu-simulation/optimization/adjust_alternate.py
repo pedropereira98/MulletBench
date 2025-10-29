@@ -95,7 +95,7 @@ def calculate_next_value_alternate(
         
         state.keep_axis = False
         state.axis_history.clear()
-    elif diff <= 0.15:
+    elif abs(diff) <= 0.15:
         state.keep_axis = True
         state.axis_history.append((axis_value, 0, diff))
         

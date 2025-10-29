@@ -3,7 +3,6 @@ from workload import WorkloadType
 import subprocess
 import yaml
 import os
-import shutil
 
 
 def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, disk_adjusts: int = -1) ->  str:
@@ -34,9 +33,6 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
         test_name = f"run-{cpu_value}"
 
     output_dir = os.path.join(config.OUTPUT_PATH, test_name)
-    
-    if os.path.exists(output_dir) and len(os.listdir(output_dir)) != 0:
-        shutil.rmtree(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
 
