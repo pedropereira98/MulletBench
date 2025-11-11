@@ -82,7 +82,7 @@ def main():
         io_result = best_io
 
         alternate_history_modified = map(lambda x: ((x[0][1], x[0][2]), x[2], x[3]), state.alternate_history)
-        alternate_history_str = json.dumps([{"cpu": cpu, "io_vals": multiply_disk_io(io_mult, config.INITIAL_DISK_IO), "diff": diff, "timestamp": ts} for ((cpu, io_mult), diff, ts) in filter(lambda x: x[0:2], sorted(alternate_history_modified, key= lambda x: x[2]))], indent=4)
+        alternate_history_str = json.dumps([{"cpu": cpu, "io_vals": multiply_disk_io(config.INITIAL_DISK_IO, io_mult), "diff": diff, "timestamp": ts} for ((cpu, io_mult), diff, ts) in filter(lambda x: x[0:2], sorted(alternate_history_modified, key= lambda x: x[2]))], indent=4)
         print(f"\n\nAdjust History:\n{alternate_history_str}")
     else:
         if cpu_result is not None:
