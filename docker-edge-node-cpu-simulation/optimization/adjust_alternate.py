@@ -132,7 +132,7 @@ def calculate_next_value_alternate(
 
 
     state.alternate_history.append(((axis_value, current_cpu_value, current_io_multiplier), current_bias, diff, time.time()))
-    state.alternate_history.sort(key= lambda x: x[0])
+    state.alternate_history.sort(key= lambda x: x[0][0])
     
     lower = upper = None
 
@@ -146,7 +146,7 @@ def calculate_next_value_alternate(
     if lower and upper:
         weight_low = 1 / abs(lower[2])
         weight_up = 1 / abs(upper[2])
-        next_axis = (lower[0] * weight_low + upper[0] * weight_up) / (weight_low + weight_up)
+        next_axis = (lower[0][0] * weight_low + upper[0][0] * weight_up) / (weight_low + weight_up)
         next_bias = round((lower[1] * weight_low + upper[1] * weight_up) / (weight_low + weight_up))
         
         cpu, disk = axis_to_values(next_axis, next_bias)

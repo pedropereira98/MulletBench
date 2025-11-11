@@ -14,7 +14,7 @@ def multiply_disk_io(base_io_limits: dict, multiplier: float) -> dict:
             val = int(raw_val)
             new_limits[key] = str(round(val * multiplier))
         else:
-            num, unit = config.DISK_BPS_REGEX.match(val).groups()
+            num, unit = config.DISK_BPS_REGEX.match(raw_val).groups()
             num = float(num)
             new_limits[key] = f"{round(num * multiplier, config.MAX_DECIMAL_PLACES)}{unit}"
 
