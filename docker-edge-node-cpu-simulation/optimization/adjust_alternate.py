@@ -6,13 +6,22 @@ import time
 import math
 
 def calculate_axis(cpu_value: float, current_disk_multiplier: float):
+    """ Calculate the axis value from cpu and disk multiplier
+    Args:
+        cpu_value (float): current cpu value
+        current_disk_multiplier (float): current disk multiplier
+        
+    Returns:
+        float: calculated axis value
+    """
     return round(cpu_value * current_disk_multiplier, config.MAX_DECIMAL_PLACES)
 
-def axis_to_values(axis_value: float, bias: int) -> tuple[float, float]:
+def axis_to_values(axis_value: float, old_values: tuple[float, float] | None = None, bias: int = 0) -> tuple[float, float]:
     """ Calculate the value for cpu and disk multiplier from axis value
 
     Args:
         axis_value (float): value of the axis to reverse
+        old_values (tuple[float, float] | None): previous cpu and disk values to base the calculation on
         float (int): whether to bias return for cpu, disk, or no bias (<0, >0 or 0, respectivelly)
         
     Returns:
@@ -21,23 +30,10 @@ def axis_to_values(axis_value: float, bias: int) -> tuple[float, float]:
     
     value = math.sqrt(axis_value)
     
-    value_cpu = round(value * (1 - bias * 0.05), config.MAX_DECIMAL_PLACES)
-    value_disk = round(value * (1 + bias * 0.05), config.MAX_DECIMAL_PLACES)
-    
-    return (value_cpu, value_disk) 
-
-def axis_to_values(axis_value: float, old_values: tuple[float, float], bias: int) -> tuple[float, float]:
-    """ Calculate the value for cpu and disk multiplier from axis value
-
-    Args:
-        axis_value (float): value of the axis to reverse
-        float (int): whether to bias return for cpu, disk, or no bias (<0, >0 or 0, respectivelly)
-        
-    Returns:
-        tuple[float, float]: values for cpu and disk multiplier
-    """
-    
-    value = math.sqrt(axis_value)
+    if old_values is None:
+        value_cpu = round(value * (1 - bias * 0.05), config.MAX_DECIMAL_PLACES)
+        value_disk = round(value * (1 + bias * 0.05), config.MAX_DECIMAL_PLACES)
+        return (value_cpu, value_disk)
 
     old_cpu, old_disk = old_values
 
@@ -50,6 +46,15 @@ def axis_to_values(axis_value: float, old_values: tuple[float, float], bias: int
     return (value_cpu, value_disk)
 
 def solve_axis(axis_value: float, other_value: float):
+    """Solve for the axis value given another value.
+
+    Args:
+        axis_value (float): The axis value to solve for
+        other_value (float): The other value used in the calculation
+
+    Returns:
+        float: The solved axis value
+    """
     return axis_value / other_value
 
 def calculate_next_value_alternate(
