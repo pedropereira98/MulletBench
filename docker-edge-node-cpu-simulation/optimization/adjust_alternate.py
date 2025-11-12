@@ -154,7 +154,7 @@ def calculate_next_value_alternate(
         next_axis = (lower[0][0] * weight_low + upper[0][0] * weight_up) / (weight_low + weight_up)
         next_bias = round((lower[1] * weight_low + upper[1] * weight_up) / (weight_low + weight_up))
         
-        cpu, disk = axis_to_values(next_axis, next_bias)
+        cpu, disk = axis_to_values(next_axis, bias = next_bias)
         return (cpu, disk, next_bias)
         
     next_axis = axis_value - (diff * axis_value)
