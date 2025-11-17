@@ -5,6 +5,65 @@ from collections import defaultdict
 
 from numpy import average
 
+from collections import OrderedDict
+import re
+
+MAX_DECIMAL_PLACES = 3
+
+def parse_result(file_path):
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    root = OrderedDict()
+    stack = [(-1, root)]  # (indentation level, current dict)
+
+    key_val_pattern = re.compile(r"^\s*([^:]+):\s*(.*)$")
+    val_unit_pattern = re.compile(r"^([-+]?\d*\.?\d+)\s*(\S+(\s+\S+)*)?$")
+
+    for line in lines:
+        if not line.strip():
+            continue
+
+        indent = len(line) - len(line.lstrip(" "))
+
+        # Find parent based on indentation
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+
+        parent = stack[-1][1]
+
+        # SECTION HEADER (ends with ":" and no immediate value)
+        if line.strip().endswith(":") and not re.search(r":\s*\S", line):
+            section_name = line.strip().rstrip(":")
+            parent[section_name] = OrderedDict()
+            stack.append((indent, parent[section_name]))
+            continue
+
+        # KEY: VALUE
+        match = key_val_pattern.match(line)
+        if match:
+            key = match.group(1).strip()
+            val = match.group(2).strip()
+
+            # Handle duplicates (Insertion rate, etc.)
+            if key in parent:
+                i = 1
+                while f"{key}_{i}" in parent:
+                    i += 1
+                key = f"{key}_{i}"
+
+            # Try to interpret as number + optional unit
+            m2 = val_unit_pattern.match(val)
+            if m2:
+                num = float(m2.group(1))
+                unit = m2.group(2)
+                parent[key] = (num, unit.strip() if unit else None)
+            else:
+                parent[key] = (val, None)
+
+            continue
+
+    return root
 def read_results(folder_path):
     results = []
     for subdir in os.listdir(folder_path):
@@ -12,38 +71,105 @@ def read_results(folder_path):
         if os.path.isdir(subdir_path):
             result_file = os.path.join(subdir_path, "results.txt")
             if os.path.isfile(result_file):
-                with open(result_file, "r") as file:
-                    results.append(file.readlines())
+                results.append(parse_result(result_file))
     return results
 
+import math
+
 def process_results(results):
-    processed_lines = []
-    
-    for line1, line2, line3 in zip(*results):
-        match1 = re.match(r"(.*?):\s+([\d\.]+)\s*((?:\w+ )*\w+)?", line1.strip())
-        match2 = re.match(r"(.*?):\s+([\d\.]+)\s*((?:\w+ )*\w+)?", line2.strip())
-        match3 = re.match(r"(.*?):\s+([\d\.]+)\s*((?:\w+ )*\w+)?", line3.strip())
-        if match1 and match2 and match3:
-            key1, value1, unit1 = match1.groups()
-            _, value2, _ = match2.groups()
-            _, value3, _ = match3.groups()
+    def process_node(values):
+        
+        if all(isinstance(v, tuple) and isinstance(v[0], (int, float)) for v in values if v is not None):
+            nums = []
+            unit = None
+
+            for v in values:
+                if v is None:
+                    nums.append(0.0)
+                else:
+                    nums.append(v[0])
+                    if v[1] and unit is None:
+                        unit = v[1]
+
+            avg = round(sum(nums) / len(nums), MAX_DECIMAL_PLACES)
+            mn = round(min(nums), MAX_DECIMAL_PLACES)
+            mx = round(max(nums), MAX_DECIMAL_PLACES)
+            var = round(sum((x - avg) ** 2 for x in nums) / len(nums), MAX_DECIMAL_PLACES)
+            std = round(math.sqrt(var), MAX_DECIMAL_PLACES)
+
+            return (avg, unit, std, mn, mx)
+
+        if all(isinstance(v, tuple) and isinstance(v[0], str) for v in values if v is not None):
+            strings = [v[0] for v in values if v is not None]
+            if len(set(strings)) == 1:
+                return (strings[0], None)
+            else:
+                return (strings[0], None)
+
+        if all(isinstance(v, dict) for v in values if v is not None):
+            result = {}
             
-            average_value = average([float(value1), float(value2), float(value3)])
-            std_dev = average([(float(value1) - average_value) ** 2, (float(value2) - average_value) ** 2, (float(value3) - average_value) ** 2]) ** 0.5
-            min_value = min(float(value1), float(value2), float(value3))
-            max_value = max(float(value1), float(value2), float(value3))
-            processed_lines.append(f"{key1}: {average_value:.2f} {unit1 if unit1 is not None else ''} (std dev: {std_dev:.2f}, min: {min_value:.2f}, max: {max_value:.2f})")
-        else:
-            processed_lines.append(line1.strip())
-    
-    return processed_lines
+            all_keys = []
+            
+            for v in values:
+                if v and not all(k in all_keys for k in v.keys()):
+                    all_keys = list(v.keys())
+            
+            for k in all_keys:
+                subvals = [
+                    v.get(k) if isinstance(v, dict) else None
+                    for v in values
+                ]
+                result[k] = process_node(subvals)
+            return result
+
+        return next((v for v in values if v is not None), None)
+
+    return process_node(results)
+
+
+
+import os
 
 def save_to_file(folder_path, processed_results):
     output_file = os.path.join(folder_path, "aggregated_results.txt")
+    
+    def write_dict(d, file, indent=0):
+        indent_str = " " * indent
+        
+        for key, value in d.items():
+
+            if isinstance(value, dict):
+                file.write(f"{indent_str}{key}:\n")
+                write_dict(value, file, indent + 2)
+                continue
+
+            if isinstance(value, tuple) and len(value) == 5:
+                avg, unit, std, mn, mx = value
+                
+                unit_str = f" {unit}" if unit else ""
+                file.write(
+                    f"{indent_str}{key}: "
+                    f"{avg}{unit_str} "
+                    f"(std dev: {std}, min: {mn}, max: {mx})\n"
+                )
+                continue
+
+            if isinstance(value, tuple) and isinstance(value[0], str):
+                file.write(f"{indent_str}{key}: {value[0]}\n")
+                continue
+
+            if value is None:
+                file.write(f"{indent_str}{key}: N/A\n")
+                continue
+
+            file.write(f"{indent_str}{key}: {value}\n")
+
     with open(output_file, "w") as file:
-        for line in processed_results:
-            file.write(f"{line}\n")
+        write_dict(processed_results, file)
+
     print(f"Processed results saved to {output_file}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Read and process benchmark results.")
