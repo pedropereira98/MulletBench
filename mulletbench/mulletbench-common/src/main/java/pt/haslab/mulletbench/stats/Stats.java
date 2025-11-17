@@ -91,7 +91,7 @@ public abstract class Stats implements Serializable {
         return Math.sqrt(standardDeviation / length);
     }
 
-    protected abstract void printStats(float globalTimeS);
+    protected abstract void printStats(float globalTimeS, int indentation);
 
     public List<String> toCSV(){
         return operations.stream().map(StatsEntry::toCSV).collect(Collectors.toList());

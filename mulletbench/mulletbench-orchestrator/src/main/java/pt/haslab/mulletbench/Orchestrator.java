@@ -94,73 +94,76 @@ public class Orchestrator {
     private void displayResults(){
         // per node, per client, per worker?
 
+        int indentation = 0;
         System.out.println("\n\nTest results:");
+        indentation++;
 
         for(Client c: clients){
             if(c.statsCollector.type == WorkloadType.QUERY){
-                System.out.println("\nClient " + c.name + " query seed: " + c.statsCollector.querySeed);
+                System.out.println("\n" + IndentString.indent(indentation) + "Client " + c.name + " query seed: " + c.statsCollector.querySeed);
             }
         }
 
-        // try {
-        //     Reader configFileReader = ResourceAccess.getResourceBufferedReader("config.yml");
-        
-        //     BufferedReader bufferedReader = new BufferedReader(configFileReader);
-
-        //     String line;
-
-        //     while ((line = bufferedReader.readLine()) != null) {
-        //         System.out.println(line);
-        //     }
-            
-        // } catch (IOException e) {
-        //     System.err.println("Error reading configuration file");
-        // }
-
         int i = 1;
 
-        System.out.println("\nStats per stage:");
+        System.out.println("\n" + IndentString.indent(indentation) + "Stats per stage:");
+        indentation++;
         for(Stage stage: stages){
             List<Client> stageClients = clients.stream().filter(client -> stage.clients().contains(client.name)).toList();
 
             GlobalStats stageStats = new GlobalStats();
             stageClients.forEach(client -> stageStats.joinCollector(client.statsCollector));
-            
-            System.out.println("\nStage " + i + " stats:");
-            stageClients.forEach((c) -> { 
-                System.out.println("\nClient " + c.name); 
-                c.displayResults();
+            System.out.println("\n" + IndentString.indent(indentation) + "Stage " + i + " stats:");
+            indentation++;
+            final int stageIndentation = indentation;
+            stageClients.forEach((c) -> {
+                System.out.println("\n" + IndentString.indent(stageIndentation) + "Client " + c.name + " stats:");
+                c.displayResults(stageIndentation + 1);
             });
 
-            System.out.println("\nJoined Stage " + i + " stats:");
-            stageStats.printStats();
-
+            System.out.println("\n" + IndentString.indent(indentation) + "Joined Stage " + i + " stats:");
+            indentation++;
+            stageStats.printStats(indentation);
+            indentation--;
+            indentation--;
             i++;
         }
+        indentation--;
 
-        System.out.println("\nStats per node:");
+        System.out.println("\n" + IndentString.indent(indentation) + "Stats per node:");
+        indentation++;
         for(DatabaseNode node: nodes.values()){
             GlobalStats nodeStats = new GlobalStats();
             clients.stream().filter(client -> client.node.getName().equals(node.getName())).forEach(client -> nodeStats.joinCollector(client.statsCollector));
 
-            System.out.println("\n" + node.getName() + " stats:");
-            nodeStats.printStats();
+            System.out.println("\n" + IndentString.indent(indentation) + node.getName() + " stats:");
+            indentation++;
+            nodeStats.printStats(indentation);
+            indentation--;
         }
+        indentation--;
 
-        System.out.println("\nStats per layer:");
-        System.out.println("\nEdge database node stats:");
+        System.out.println("\n" + IndentString.indent(indentation) + "Stats per layer:");
+        indentation++;
+        System.out.println("\n" + IndentString.indent(indentation) + "Edge database node stats:");
+        indentation++;
         GlobalStats edgeStats = new GlobalStats();
         clients.stream().filter(client -> client.node.layer.equals(DatabaseNode.Layer.EDGE)).forEach(client -> edgeStats.joinCollector(client.statsCollector));
-        edgeStats.printStats();
+        edgeStats.printStats(indentation);
+        indentation--;
 
-        System.out.println("\nCloud database node stats:");
+        System.out.println("\n" + IndentString.indent(indentation) + "Cloud database node stats:");
+        indentation++;
         GlobalStats cloudStats = new GlobalStats();
         clients.stream().filter(client -> client.node.layer.equals(DatabaseNode.Layer.CLOUD)).forEach(client -> cloudStats.joinCollector(client.statsCollector));
-        cloudStats.printStats();
+        cloudStats.printStats(indentation);
+        indentation--;
+        indentation--;
 
         System.out.println("\nGlobal stats:");
-
-        globalStats.printStats();
+        indentation++;
+        globalStats.printStats(indentation);
+        indentation--;
     }
 
     private void startMonitoringDatabase(){
@@ -209,7 +212,7 @@ public class Orchestrator {
             Files.createDirectories(Paths.get(this.resultsFolder));
             logger.info("Waiting for clients");
             while(receivedClients < clients.size()){
-                Socket receivedSocket = serverSocket.accept(); //TODO timeout if not all connections are received
+                Socket receivedSocket = serverSocket.accept();
                 InetAddress socketAddress = receivedSocket.getInetAddress();
                 logger.info("Received connection request from " + socketAddress.toString());
 

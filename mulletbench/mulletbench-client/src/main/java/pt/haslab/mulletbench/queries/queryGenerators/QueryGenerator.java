@@ -149,7 +149,7 @@ public abstract class QueryGenerator {
 //        else if(range.toMillis() == rangeSize)
 //            return timeController.getStartRange();
 
-        return Instant.ofEpochMilli(Math.abs(random.nextLong()) % (rangeSize - range.toMillis()) + timeController.getStartOfRange().toEpochMilli());
+        return Instant.ofEpochMilli((long)(random.nextFloat() * (rangeSize - range.toMillis())) + timeController.getStartOfRange().toEpochMilli());
     }
 
     private ChronoUnit parseChronoUnit(String unitString) {

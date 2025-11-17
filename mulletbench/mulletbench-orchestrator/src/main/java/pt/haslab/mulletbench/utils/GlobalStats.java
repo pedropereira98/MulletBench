@@ -41,12 +41,12 @@ public class GlobalStats {
         }
     }
 
-    public void printStats() {
+    public void printStats(int indentation){
         if(queryStart != Long.MAX_VALUE){
-            queryStats.printStats((float) (queryEnd - queryStart) / 1_000_000_000L);
+            queryStats.printStats((float) (queryEnd - queryStart) / 1_000_000_000L, indentation);
         }
         if(insertStart != Long.MAX_VALUE){
-            insertStats.printStats((float) (insertEnd - insertStart) / 1_000_000_000L);
+            insertStats.printStats((float) (insertEnd - insertStart) / 1_000_000_000L, indentation);
         }
     }
 }

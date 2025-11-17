@@ -1,9 +1,10 @@
 package pt.haslab.mulletbench.stats;
 
-import pt.haslab.mulletbench.OperationType;
-
 import java.util.List;
 import java.util.stream.Collectors;
+
+import pt.haslab.mulletbench.IndentString;
+import pt.haslab.mulletbench.OperationType;
 
 public class QueryStats extends Stats {
     
@@ -25,31 +26,33 @@ public class QueryStats extends Stats {
         return operations.stream().filter(statsEntry -> statsEntry.type().isValidQuery()).mapToInt(StatsEntry::getCount).sum();
     }
 
-    private void printLatencyStats(){
-        System.out.println("Queried volume: " + this.getVolume());
-        System.out.println("Query count: " + this.getCount());
+    private void printLatencyStats(int indentation){
+        System.out.println(IndentString.indent(indentation) + "Queried volume: " + this.getVolume());
+        System.out.println(IndentString.indent(indentation) + "Query count: " + this.getCount());
         int failedQueryCount = this.getFailedQueryCount();
         if(failedQueryCount > 0){
-            System.out.println("Failed query count: " + failedQueryCount);
+            System.out.println(IndentString.indent(indentation) + "Failed query count: " + failedQueryCount);
         }
 
-        System.out.println("Latency breakdown:");
-        System.out.println("Minimum: " + this.getMinimum()/1_000_000L + "ms");
-        System.out.println("10th percentile: " + this.getPercentile(10)/1_000_000L + "ms");
-        System.out.println("Average: " + this.getAverage()/1_000_000L + "ms");
-        System.out.println("90th percentile: " + this.getPercentile(90)/1_000_000L + "ms");
-        System.out.println("Maximum: " + this.getMaximum()/1_000_000L + "ms");
-        System.out.println("Median: " + this.getMedian()/1_000_000L + "ms");
-        System.out.println("Standard deviation: " + this.getStandardDeviation()/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "Latency breakdown:");
+        indentation++;
+        System.out.println(IndentString.indent(indentation) + "Minimum: " + this.getMinimum()/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "10th percentile: " + this.getPercentile(10)/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "Average: " + this.getAverage()/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "90th percentile: " + this.getPercentile(90)/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "Maximum: " + this.getMaximum()/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "Median: " + this.getMedian()/1_000_000L + "ms");
+        System.out.println(IndentString.indent(indentation) + "Standard deviation: " + this.getStandardDeviation()/1_000_000L + "ms");
     }
 
-    public void printStats(float globalTimeS){
-        System.out.println();
-        System.out.println("Total time: " + globalTimeS + " seconds");
-        System.out.println("Query rate: " + (float) this.getVolume() / (globalTimeS) + " query records/s");
-        System.out.println("Query rate: " + (float) this.getCount() / (globalTimeS) + " queries ops/s");
+    public void printStats(float globalTimeS, int indentation){
+        System.out.println(IndentString.indent(indentation) + "Query stats:");
+        indentation++;
+        System.out.println(IndentString.indent(indentation) + "Total time: " + globalTimeS + " seconds");
+        System.out.println(IndentString.indent(indentation) + "Query rate: " + (float) this.getVolume() / (globalTimeS) + " query records/s");
+        System.out.println(IndentString.indent(indentation) + "Query rate: " + (float) this.getCount() / (globalTimeS) + " queries ops/s");
 
-        printLatencyStats();
+        printLatencyStats(indentation);
 
         QueryStats outlierFilterStats = QueryStats.from(operations.stream().filter(op -> op.type().equals(OperationType.OUTLIER_FILTER)).collect(Collectors.toList()));
         QueryStats filterStats = QueryStats.from(operations.stream().filter(op -> op.type().equals(OperationType.FILTER)).collect(Collectors.toList()));
@@ -58,39 +61,43 @@ public class QueryStats extends Stats {
 
         if(!outlierFilterStats.operations.isEmpty()){
             System.out.println("\nOutlier filter queries:");
+            indentation++;
             long failedOutlierFilters = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_OUTLIER_FILTER)).count();
             if(failedOutlierFilters > 0){
-                System.out.println("Failed: " + failedOutlierFilters);
+                System.out.println(IndentString.indent(indentation) + "Failed: " + failedOutlierFilters);
             }
-            outlierFilterStats.printLatencyStats();
+            outlierFilterStats.printLatencyStats(indentation);
         }
 
         if(!filterStats.operations.isEmpty()){
             System.out.println("\nFilter queries:");
+            indentation++;
             long failedFilters = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_FILTER)).count();
             if(failedFilters > 0){
-                System.out.println("Failed: " + failedFilters);
+                System.out.println(IndentString.indent(indentation) + "Failed: " + failedFilters);
             }
-            filterStats.printLatencyStats();
+            filterStats.printLatencyStats(indentation);
 
         }
 
         if(!aggregationStats.operations.isEmpty()) {
             System.out.println("\nAggregation queries:");
+            indentation++;
             long failedAggregations = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_AGGREGATION)).count();
             if(failedAggregations > 0){
-                System.out.println("Failed: " + failedAggregations);
+                System.out.println(IndentString.indent(indentation) + "Failed: " + failedAggregations);
             }
-            aggregationStats.printLatencyStats();
+            aggregationStats.printLatencyStats(indentation);
         }
 
         if(!downsamplingStats.operations.isEmpty()) {
             System.out.println("\nDownsampling queries:");
+            indentation++;
             long failedDownscaling = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_DOWNSAMPLING)).count();
             if(failedDownscaling > 0){
-                System.out.println("Failed: " + failedDownscaling);
+                System.out.println(IndentString.indent(indentation) + "Failed: " + failedDownscaling);
             }
-            downsamplingStats.printLatencyStats();
+            downsamplingStats.printLatencyStats(indentation);
         }
     }
 

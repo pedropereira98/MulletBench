@@ -8,6 +8,7 @@ import java.net.Socket;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import pt.haslab.mulletbench.stats.StatsCollector;
 
 
@@ -68,9 +69,9 @@ public class Client implements Runnable {
         this.objIn = objIn;
     }
 
-    public void displayResults(){
+    public void displayResults(int indentation){
         if(this.status == Status.FINISHED){
-            statsCollector.printStats();
+            statsCollector.printStats(indentation);
         } else {
             logger.error("Cannot displayResults, client not finished");
         }

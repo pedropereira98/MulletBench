@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import pt.haslab.mulletbench.IndentString;
 import pt.haslab.mulletbench.TimeProvider;
 import pt.haslab.mulletbench.WorkloadType;
 
@@ -53,7 +54,7 @@ public class StatsCollector implements Serializable {
         return stats.get(i);
     }
 
-    private void printInsertionStats(){
+    private void printInsertionStats(int indentation){
         InsertionStats globalStats = new InsertionStats();
 
         stats.forEach(globalStats::join);
@@ -64,15 +65,16 @@ public class StatsCollector implements Serializable {
             final float globalTimeS = (float) globalTimeMS / 1_000L;
     
             System.out.println();
-            System.out.println("Global stats:");
-            System.out.println("Total global time: " + globalTimeMS + "ms");
-            System.out.println("Total write time: " + writeTimeMS + "ms");
-            
-            globalStats.printStats(globalTimeS);
+            System.out.println(IndentString.indent(indentation) + "Global stats:");
+            indentation++;
+            System.out.println(IndentString.indent(indentation) + "Total global time: " + globalTimeMS + "ms");
+            System.out.println(IndentString.indent(indentation) + "Total write time: " + writeTimeMS + "ms");
+
+            globalStats.printStats(globalTimeS, indentation);
         }
     }
 
-    private void printQueryStats(){
+    private void printQueryStats(int indentation){
         QueryStats globalStats = new QueryStats();
 
         stats.forEach(globalStats::join);
@@ -83,12 +85,13 @@ public class StatsCollector implements Serializable {
             final float globalTimeS = (float) globalTimeMS / 1_000L;
     
             System.out.println();
-            System.out.println("Global stats:");
-            System.out.println("Random Seed used: " + querySeed);
-            System.out.println("Total global time: " + globalTimeMS + "ms");
-            System.out.println("Total query time: " + queryTimeMS + "ms");
-            
-            globalStats.printStats(globalTimeS);
+            System.out.println(IndentString.indent(indentation) + "Global stats:");
+            indentation++;
+            System.out.println(IndentString.indent(indentation) + "Random Seed used: " + querySeed);
+            System.out.println(IndentString.indent(indentation) + "Total global time: " + globalTimeMS + "ms");
+            System.out.println(IndentString.indent(indentation) + "Total query time: " + queryTimeMS + "ms");
+
+            globalStats.printStats(globalTimeS, indentation);
         }
     }
 
@@ -96,21 +99,32 @@ public class StatsCollector implements Serializable {
         return stats.stream().map(Stats::toCSV).flatMap(List::stream).collect(Collectors.toList());
     }
 
-    public void printStats(){
+    public void printStats(int indentation){
         switch(type){
             case INSERT:
-                printInsertionStats();
+                printInsertionStats(indentation);
                 break;
             case QUERY:
-                printQueryStats();
+                printQueryStats(indentation);
                 break;
         }
 
         if(stats.size() <= 4){
-            System.out.println("Breakdown by worker:");
+            System.out.println("\n" + IndentString.indent(indentation) + "Breakdown by worker:");
             float globalTimeS = (float) (end - start)/1_000_000_000L;
+            indentation++;
 
-            stats.stream().filter(s -> s.getCount() > 0).forEach(s -> s.printStats(globalTimeS));
+            List<Stats> filtered = stats.stream().filter(s -> s.getCount() > 0).collect(Collectors.toList());
+            
+            int id = 0;
+            for (Stats s : filtered){
+                System.out.println("\n" + IndentString.indent(indentation) + "Worker " + id + ":");
+                indentation++;
+                s.printStats(globalTimeS, indentation);
+                indentation--;
+                id++;
+            }
+            
         }
 
     }

@@ -323,7 +323,7 @@ public class BenchmarkClient {
         this.statsCollector.endCollection();
 
         logger.info("Finished workload");
-        this.statsCollector.printStats();
+        this.statsCollector.printStats(0);
 
         logger.debug("Sending collected statistics to orchestrator");
 
