@@ -67,6 +67,7 @@ public class QueryStats extends Stats {
                 System.out.println(IndentString.indent(indentation) + "Failed: " + failedOutlierFilters);
             }
             outlierFilterStats.printLatencyStats(indentation);
+            indentation--;
         }
 
         if(!filterStats.operations.isEmpty()){
@@ -77,7 +78,7 @@ public class QueryStats extends Stats {
                 System.out.println(IndentString.indent(indentation) + "Failed: " + failedFilters);
             }
             filterStats.printLatencyStats(indentation);
-
+            indentation--;
         }
 
         if(!aggregationStats.operations.isEmpty()) {
@@ -88,6 +89,7 @@ public class QueryStats extends Stats {
                 System.out.println(IndentString.indent(indentation) + "Failed: " + failedAggregations);
             }
             aggregationStats.printLatencyStats(indentation);
+            indentation--;
         }
 
         if(!downsamplingStats.operations.isEmpty()) {
@@ -98,6 +100,7 @@ public class QueryStats extends Stats {
                 System.out.println(IndentString.indent(indentation) + "Failed: " + failedDownscaling);
             }
             downsamplingStats.printLatencyStats(indentation);
+            indentation--;
         }
     }
 
