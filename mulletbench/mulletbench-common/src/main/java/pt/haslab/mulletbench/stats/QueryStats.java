@@ -60,7 +60,7 @@ public class QueryStats extends Stats {
         QueryStats aggregationStats = QueryStats.from(operations.stream().filter(op -> op.type().equals(OperationType.AGGREGATION)).collect(Collectors.toList()));
 
         if(!outlierFilterStats.operations.isEmpty()){
-            System.out.println("\nOutlier filter queries:");
+            System.out.println("\n" + IndentString.indent(indentation) + "Outlier filter queries:");
             indentation++;
             long failedOutlierFilters = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_OUTLIER_FILTER)).count();
             if(failedOutlierFilters > 0){
@@ -70,7 +70,7 @@ public class QueryStats extends Stats {
         }
 
         if(!filterStats.operations.isEmpty()){
-            System.out.println("\nFilter queries:");
+            System.out.println("\n" + IndentString.indent(indentation) + "Filter queries:");
             indentation++;
             long failedFilters = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_FILTER)).count();
             if(failedFilters > 0){
@@ -81,7 +81,7 @@ public class QueryStats extends Stats {
         }
 
         if(!aggregationStats.operations.isEmpty()) {
-            System.out.println("\nAggregation queries:");
+            System.out.println("\n" + IndentString.indent(indentation) + "Aggregation queries:");
             indentation++;
             long failedAggregations = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_AGGREGATION)).count();
             if(failedAggregations > 0){
@@ -91,7 +91,7 @@ public class QueryStats extends Stats {
         }
 
         if(!downsamplingStats.operations.isEmpty()) {
-            System.out.println("\nDownsampling queries:");
+            System.out.println("\n" + IndentString.indent(indentation) + "Downsampling queries:");
             indentation++;
             long failedDownscaling = this.operations.stream().filter(statsEntry -> statsEntry.type().equals(OperationType.FAILED_DOWNSAMPLING)).count();
             if(failedDownscaling > 0){
