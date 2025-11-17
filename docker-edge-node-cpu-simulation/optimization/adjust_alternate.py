@@ -85,6 +85,7 @@ def calculate_next_value_alternate(
     axis_value = calculate_axis(current_cpu_value, current_io_multiplier)
     
     if state.keep_axis:
+        state.axis_history.append((axis_value, current_bias, diff))
         state.axis_history.sort(key=lambda x: x[1])
         
         if state.axis_history[-1][1] <= 0: ## hasn't explored positive bias
