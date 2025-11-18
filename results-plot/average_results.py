@@ -134,10 +134,16 @@ import os
 def save_to_file(folder_path, processed_results):
     output_file = os.path.join(folder_path, "aggregated_results.txt")
     
+    repeated_key_pattern = re.compile(r"^(.*)_(\d+)$")
+    
     def write_dict(d, file, indent=0):
         indent_str = " " * indent
         
         for key, value in d.items():
+            
+            match = repeated_key_pattern.match(key)
+            if match:
+                key = match.group(1)
 
             if isinstance(value, dict):
                 file.write(f"{indent_str}{key}:\n")
