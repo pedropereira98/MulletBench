@@ -160,7 +160,7 @@ public class Orchestrator {
         indentation--;
         indentation--;
 
-        System.out.println("\nGlobal stats:");
+        System.out.println("\n" + IndentString.indent(indentation) + "Global stats:");
         indentation++;
         globalStats.printStats(indentation);
         indentation--;

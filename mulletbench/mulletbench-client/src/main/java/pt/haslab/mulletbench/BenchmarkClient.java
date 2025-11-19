@@ -339,15 +339,6 @@ public class BenchmarkClient {
         }
 
         try {
-            this.objIn.readBoolean();
-            logger.info("Statistics successfully sent");
-        } catch(IOException e) {
-            logger.info("Statistics successfully sent");
-            e.printStackTrace();
-        }
-
-
-        try {
             // Thread.sleep(10000); 
 
             this.orchestratorSocket.shutdownOutput();
