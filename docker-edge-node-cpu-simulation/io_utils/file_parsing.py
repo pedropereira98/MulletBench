@@ -1,5 +1,7 @@
 from config import config
 import os
+import re
+import math
 
 def get_results_from_file(results_file_path: str) -> dict:
     """Parse the results file and extract relevant metrics.
@@ -13,53 +15,61 @@ def get_results_from_file(results_file_path: str) -> dict:
     """
     with open(results_file_path, 'r') as file:
         lines = file.readlines()
-    
-    results = {}
-    level = 0
+        beginning = 0
+        while not lines[beginning].startswith("Test results:"):
+            beginning += 1
+        lines = lines[beginning + 1:]
+        
+    root = dict()
+    stack = [(-1, root)]  # (indentation level, current dict)
 
-    cloud_line_flag = False
-    global_flag = False
+    key_val_pattern = re.compile(r"^\s*([^:]+):\s*(.*)$")
+    val_unit_pattern = re.compile(r"^([-+]?\d*\.?\d+)\s*(\S+(\s+\S+)*)?$")
 
-    last_header = ""
     for line in lines:
-        if cloud_line_flag:
-            if global_flag :
+        if not line.strip():
+            continue
 
-                if len(line) <= 1:
-                    level = 0
-                    continue
+        indent = len(line) - len(line.lstrip(" "))
 
-                if level > 0:
-                    continue
-                
-                if config.HEADER_REGEX.match(line):
-                    header = line.split(":")[0]
-                    if header != "Latency breakdown":
-                        level += 1
-                    continue
+        # Find parent based on indentation
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
 
-                key, raw_value = line.split(": ")
+        parent = stack[-1][1]
 
-                if "ops/s" in raw_value:
-                    key += " ops"
+        # SECTION HEADER (ends with ":" and no immediate value)
+        if line.strip().endswith(":") and not re.search(r":\s*\S", line):
+            section_name = line.strip().rstrip(":")
+            parent[section_name] = dict()
+            stack.append((indent, parent[section_name]))
+            continue
 
-                match = config.NUM_REGEX.match(raw_value)
-                value = float(match.group(0))
+        # KEY: VALUE
+        match = key_val_pattern.match(line)
+        if match:
+            key = match.group(1).strip()
+            val = match.group(2).strip()
 
-                key_orig = key
+            # Handle duplicates (Insertion rate, etc.)
+            if key in parent:
                 i = 1
-                while key in results.keys():
-                    key = f"{key_orig}_{i}"
+                while f"{key}_{i}" in parent:
                     i += 1
+                key = f"{key}_{i}"
 
-                results[key] = value
+            # Try to interpret as number + optional unit
+            m2 = val_unit_pattern.match(val)
+            if m2:
+                num = float(m2.group(1))
+                unit = m2.group(2)
+                parent[key] = (num, unit.strip() if unit else None)
+            else:
+                parent[key] = (val, None)
 
-            elif "Global stats:" in line:
-                global_flag = True
-        elif "Cloud database node stats:" in line:
-            cloud_line_flag = True
-    
-    return results 
+            continue
+
+    return root
 
 def parse_disk_io_limts(filepath: str) -> dict:
     """Parse the disk I/O limits from a file.
@@ -82,6 +92,58 @@ def parse_disk_io_limts(filepath: str) -> dict:
     return limits
 
 
+def process_results(results):
+    def process_node(values):
+        
+        if all(isinstance(v, tuple) and isinstance(v[0], (int, float)) for v in values if v is not None):
+            nums = []
+            unit = None
+
+            for v in values:
+                if v is None:
+                    nums.append(0.0)
+                else:
+                    nums.append(v[0])
+                    if v[1] and unit is None:
+                        unit = v[1]
+
+
+            avg = round(sum(nums) / len(nums), config.MAX_DECIMAL_PLACES)
+            mn = round(min(nums), config.MAX_DECIMAL_PLACES)
+            mx = round(max(nums), config.MAX_DECIMAL_PLACES)
+            var = round(sum((x - avg) ** 2 for x in nums) / len(nums), config.MAX_DECIMAL_PLACES)
+            std = round(math.sqrt(var), config.MAX_DECIMAL_PLACES)
+
+            return (avg, unit, std, mn, mx)
+
+        if all(isinstance(v, tuple) and isinstance(v[0], str) for v in values if v is not None):
+            strings = [v[0] for v in values if v is not None]
+            if len(set(strings)) == 1:
+                return (strings[0], None)
+            else:
+                return (strings[0], None)
+
+        if all(isinstance(v, dict) for v in values if v is not None):
+            result = {}
+            
+            all_keys = []
+            
+            for v in values:
+                if v and not all(k in all_keys for k in v.keys()):
+                    all_keys = list(v.keys())
+            
+            for k in all_keys:
+                subvals = [
+                    v.get(k) if isinstance(v, dict) else None
+                    for v in values
+                ]
+                result[k] = process_node(subvals)
+            return result
+
+        return next((v for v in values if v is not None), None)
+
+    return process_node(results)
+
 def get_results_from_run(run_name: str):
     folder = os.path.join(config.OUTPUT_PATH, run_name)
 
@@ -91,10 +153,6 @@ def get_results_from_run(run_name: str):
         result = get_results_from_file(os.path.join(folder, file))
         results.append(result)
 
-    final = {}
-
-    for key in results[0].keys():
-        agg = [result[key] for result in results]
-        final[key] = sum(agg) / len(agg)
+    final = process_results(results)
 
     return final
