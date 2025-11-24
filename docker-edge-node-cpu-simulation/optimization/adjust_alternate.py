@@ -94,7 +94,8 @@ def calculate_next_value_alternate(
 
             return (cpu, disk, bias)
         
-        bias_used = list(map(lambda x: x[1], state.axis_history)).sort()
+        bias_used = list(map(lambda x: x[1], state.axis_history))
+        bias_used.sort()
         
         best_result = min(state.axis_history, key=lambda x: x[2])
 
