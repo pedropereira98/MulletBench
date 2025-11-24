@@ -1,5 +1,5 @@
 from config import config
-import state
+from state import state
 from workload import WorkloadType
 
 INSERT_RATE = "Insertion rate"
