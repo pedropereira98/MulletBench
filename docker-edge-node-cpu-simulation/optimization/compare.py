@@ -44,8 +44,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
     adj_edge_stats = adjusted_results[STATS_PER_NODE][f"{state.edge_node_name} stats"]
 
     if config_type == WorkloadType.INSERTION: # INSERTION workload
-        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
-        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
 
         total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin = total_insertions * config.FAILED_OPERATION_MARGIN
@@ -62,8 +62,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         ref_edge_stats = ref_edge_stats["Query stats"]
         adj_edge_stats = adj_edge_stats["Query stats"]
 
-        failed_query_ref = ref_edge_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
-        failed_query_adj = adj_edge_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
+        failed_query_ref = ref_edge_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
+        failed_query_adj = adj_edge_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
 
         total_queries = failed_query_ref + ref_edge_stats[QUERY_COUNT][0]
         margin = total_queries * config.FAILED_OPERATION_MARGIN
@@ -82,8 +82,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         
         diff_failed_insert, diff_failed_query = None, None
 
-        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
-        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
 
         total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin_insert = total_insertions * config.FAILED_OPERATION_MARGIN
@@ -92,8 +92,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         if not -margin_insert < failed_insert_diff < margin_insert:
             diff_failed_insert = failed_insert_diff / total_insertions
 
-        failed_query_ref = ref_query_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
-        failed_query_adj = adj_query_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
+        failed_query_ref = ref_query_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
+        failed_query_adj = adj_query_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
 
         total_queries = failed_query_ref + ref_query_stats[QUERY_COUNT][0]
         margin_query = total_queries * config.FAILED_OPERATION_MARGIN
