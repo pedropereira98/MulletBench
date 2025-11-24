@@ -107,14 +107,8 @@ def process_results(results):
                     if v[1] and unit is None:
                         unit = v[1]
 
-
             avg = round(sum(nums) / len(nums), config.MAX_DECIMAL_PLACES)
-            mn = round(min(nums), config.MAX_DECIMAL_PLACES)
-            mx = round(max(nums), config.MAX_DECIMAL_PLACES)
-            var = round(sum((x - avg) ** 2 for x in nums) / len(nums), config.MAX_DECIMAL_PLACES)
-            std = round(math.sqrt(var), config.MAX_DECIMAL_PLACES)
-
-            return (avg, unit, std, mn, mx)
+            return (avg, unit)
 
         if all(isinstance(v, tuple) and isinstance(v[0], str) for v in values if v is not None):
             strings = [v[0] for v in values if v is not None]

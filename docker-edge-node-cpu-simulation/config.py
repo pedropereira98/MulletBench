@@ -21,17 +21,6 @@ class Config:
         self.DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
         self.PRINT_DEBUG = False
 
-        self.TIME = "Total time"
-        self.INSERT_VOLUME = "Inserted volume"
-        self.INSERT_COUNT = "Insert count"
-        self.INSERT_RATE = "Insertion rate"
-        self.INSERT_LATENCY = "Average latency"
-        self.QUERY_COUNT = "Query count"
-        self.QUERY_RATE = "Query rate"
-        self.QUERY_LATENCY = "Average"
-        self.FAILED_INSERT_COUNT = "Failed insert count"
-        self.FAILED_QUERY_COUNT = "Failed query count"
-
         self.NUM_REGEX = re.compile(r"\d+(\.\d+)?")
         self.HEADER_REGEX = re.compile(r"[^:]+:\s*\n")
         self.DISK_BPS_REGEX = re.compile(r"(\d+\.\d+)\s*(M|G)")

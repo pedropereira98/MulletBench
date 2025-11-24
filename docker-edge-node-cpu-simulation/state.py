@@ -3,6 +3,8 @@ class State:
     
     def __init__(self):
         
+        self.edge_node_name: str = ""
+        
         self.cpu_history: list[tuple[float, float, float]] = []
         
         self.disk_io_history: list[tuple[float, float, float]] = []

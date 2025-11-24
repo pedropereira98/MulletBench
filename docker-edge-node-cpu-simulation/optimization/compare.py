@@ -1,5 +1,16 @@
 from config import config
+import state
 from workload import WorkloadType
+
+INSERT_RATE = "Insertion rate"
+INSERT_LATENCY = "Average latency"
+INSERT_COUNT = "Insert count"
+QUERY_COUNT = "Query count"
+QUERY_RATE = "Query rate_1"
+QUERY_LATENCY = "Average"
+FAILED_INSERT_COUNT = "Failed insert count"
+FAILED_QUERY_COUNT = "Failed query count"
+STATS_PER_NODE = "Stats per node"
 
 def compare(reference_results: list[str], adjusted_results: list[str], key: str):
     """ Compare a specific metric between the reference and adjusted results.
@@ -12,7 +23,7 @@ def compare(reference_results: list[str], adjusted_results: list[str], key: str)
     Returns:
         float: The difference between the adjusted and reference results for the specified metric.
     """
-    return (adjusted_results[key] / reference_results[key]) - 1
+    return (adjusted_results[key][0] / reference_results[key][0]) - 1
 
 
 def compare_results(reference_results: list[str], adjusted_results: list[str], config_type = WorkloadType.INSERTION) -> float:
@@ -29,53 +40,62 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
 
     diff = 0
 
-    if config_type == WorkloadType.INSERTION: # INSERTION workload
-        failed_insert_ref = reference_results.get(config.FAILED_INSERT_COUNT, 0.0)
-        failed_insert_adj = adjusted_results.get(config.FAILED_INSERT_COUNT, 0.0)
+    ref_edge_stats = reference_results[STATS_PER_NODE][f"{state.edge_node_name} stats"]
+    adj_edge_stats = adjusted_results[STATS_PER_NODE][f"{state.edge_node_name} stats"]
 
-        total_insertions = failed_insert_ref + reference_results[config.INSERT_COUNT]
+    if config_type == WorkloadType.INSERTION: # INSERTION workload
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
+
+        total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin = total_insertions * config.FAILED_OPERATION_MARGIN
         failed_insert_diff = failed_insert_ref - failed_insert_adj
         
         if not -margin < failed_insert_diff < margin: # Failed operations difference is too high
             diff = failed_insert_diff / total_insertions
         else:
-            diff_rate = compare(reference_results, adjusted_results, config.INSERT_RATE)
-            diff_latency = compare(adjusted_results, reference_results, config.INSERT_LATENCY)
+            diff_rate = compare(ref_edge_stats, adj_edge_stats, INSERT_RATE)
+            diff_latency = compare(adj_edge_stats, ref_edge_stats, INSERT_LATENCY)
 
             diff = (diff_rate + diff_latency) * 0.5
     elif config_type == WorkloadType.QUERY: # QUERY workload
-        failed_query_ref = reference_results.get(config.FAILED_QUERY_COUNT, 0.0)
-        failed_query_adj = adjusted_results.get(config.FAILED_QUERY_COUNT, 0.0)
+        ref_edge_stats = ref_edge_stats["Query stats"]
+        adj_edge_stats = adj_edge_stats["Query stats"]
 
-        total_queries = failed_query_ref + reference_results[config.QUERY_COUNT]
+        failed_query_ref = ref_edge_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
+        failed_query_adj = adj_edge_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
+
+        total_queries = failed_query_ref + ref_edge_stats[QUERY_COUNT][0]
         margin = total_queries * config.FAILED_OPERATION_MARGIN
         failed_query_diff = failed_query_ref - failed_query_adj
 
         if not -margin < failed_query_diff < margin:
             diff = failed_query_diff / total_queries
         else:
-            diff_rate = compare(reference_results, adjusted_results, config.QUERY_RATE)
-            diff_latency = compare(adjusted_results, reference_results, config.QUERY_LATENCY)
+            diff_rate = compare(ref_edge_stats, adj_edge_stats, QUERY_RATE)
+            diff_latency = compare(adj_edge_stats, ref_edge_stats, QUERY_LATENCY)
             diff = (diff_rate + diff_latency) * 0.5
             # diff = diff_rate
     else: # MIXED workload
+        ref_query_stats = ref_edge_stats["Query stats"]
+        adj_query_stats = adj_edge_stats["Query stats"]
+        
         diff_failed_insert, diff_failed_query = None, None
 
-        failed_insert_ref = reference_results.get(config.FAILED_INSERT_COUNT, 0.0)
-        failed_insert_adj = adjusted_results.get(config.FAILED_INSERT_COUNT, 0.0)
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, 0.0)[0]
 
-        total_insertions = failed_insert_ref + reference_results[config.INSERT_COUNT]
+        total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin_insert = total_insertions * config.FAILED_OPERATION_MARGIN
         failed_insert_diff = failed_insert_ref - failed_insert_adj
 
         if not -margin_insert < failed_insert_diff < margin_insert:
             diff_failed_insert = failed_insert_diff / total_insertions
 
-        failed_query_ref = reference_results.get(config.FAILED_QUERY_COUNT, 0.0)
-        failed_query_adj = adjusted_results.get(config.FAILED_QUERY_COUNT, 0.0)
+        failed_query_ref = ref_query_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
+        failed_query_adj = adj_query_stats.get(FAILED_QUERY_COUNT, 0.0)[0]
 
-        total_queries = failed_query_ref + reference_results[config.QUERY_COUNT]
+        total_queries = failed_query_ref + ref_query_stats[QUERY_COUNT][0]
         margin_query = total_queries * config.FAILED_OPERATION_MARGIN
         failed_query_diff = failed_query_ref - failed_query_adj
 
@@ -89,14 +109,15 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         elif diff_failed_insert is not None:
             diff = diff_failed_insert
         else:
-            metrics_rate = [config.INSERT_RATE, config.QUERY_RATE]
-            metrics_latency = [config.INSERT_LATENCY, config.QUERY_LATENCY]
+            diff_insert_rate = compare(ref_edge_stats, adj_edge_stats, INSERT_RATE)
+            diff_insert_latency = compare(adj_edge_stats, ref_edge_stats, INSERT_LATENCY)
+            diff_query_rate = compare(ref_query_stats, adj_query_stats, QUERY_RATE)
+            diff_query_latency = compare(adj_query_stats, ref_query_stats, QUERY_LATENCY)
+            
+            diff_insert = (diff_insert_rate + diff_insert_latency) / 2
+            # diff_query = (diff_query_rate + diff_query_latency) / 2
+            diff_query = diff_query_latency
 
-            diff_rate = sum([compare(reference_results, adjusted_results, metric) for metric in metrics_rate]) / len(metrics_rate)
-            diff_latency = sum([compare(adjusted_results, reference_results, metric) for metric in metrics_latency]) / len(metrics_latency)
-            diff = (diff_rate + diff_latency) / 2
-            # diff_insert = compare(reference_results, adjusted_results, INSERT_RATE) + compare(adjusted_results, reference_results, INSERT_LATENCY)
-            # diff_query = compare(reference_results, adjusted_results, QUERY_RATE) + compare(adjusted_results, reference_results, QUERY_LATENCY)
-            # diff = (diff_insert + diff_query) / 4
+            diff = (diff_insert + diff_query) / 2
 
     return round(diff, config.MAX_DECIMAL_PLACES)

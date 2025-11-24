@@ -35,7 +35,8 @@ def main():
         print("Config File should have only 1 edge server")
         exit(1)
 
-    server = edge_servers[list(edge_servers.keys())[0]]
+    state.edge_node_name = list(edge_servers.keys())[0]
+    server = edge_servers[state.edge_node_name]
     io_limits = {}
     io_limits['limited_resources_read_bps'] = server.get('limited_resources_read_bps', None)
     io_limits['limited_resources_write_bps'] = server.get('limited_resources_write_bps', None)
