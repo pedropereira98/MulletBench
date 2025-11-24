@@ -7,6 +7,7 @@ INSERT_LATENCY = "Average latency"
 INSERT_COUNT = "Insert count"
 QUERY_COUNT = "Query count"
 QUERY_RATE = "Query rate_1"
+QUERY_LATENCY_BREAKDOWN = "Latency breakdown"
 QUERY_LATENCY = "Average"
 FAILED_INSERT_COUNT = "Failed insert count"
 FAILED_QUERY_COUNT = "Failed query count"
@@ -44,8 +45,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
     adj_edge_stats = adjusted_results[STATS_PER_NODE][f"{state.edge_node_name} stats"]
 
     if config_type == WorkloadType.INSERTION: # INSERTION workload
-        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
-        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0,))[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0,))[0]
 
         total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin = total_insertions * config.FAILED_OPERATION_MARGIN
@@ -62,8 +63,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         ref_edge_stats = ref_edge_stats["Query stats"]
         adj_edge_stats = adj_edge_stats["Query stats"]
 
-        failed_query_ref = ref_edge_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
-        failed_query_adj = adj_edge_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
+        failed_query_ref = ref_edge_stats.get(FAILED_QUERY_COUNT, (0.0,))[0]
+        failed_query_adj = adj_edge_stats.get(FAILED_QUERY_COUNT, (0.0,))[0]
 
         total_queries = failed_query_ref + ref_edge_stats[QUERY_COUNT][0]
         margin = total_queries * config.FAILED_OPERATION_MARGIN
@@ -73,7 +74,7 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
             diff = failed_query_diff / total_queries
         else:
             diff_rate = compare(ref_edge_stats, adj_edge_stats, QUERY_RATE)
-            diff_latency = compare(adj_edge_stats, ref_edge_stats, QUERY_LATENCY)
+            diff_latency = compare(adj_edge_stats[QUERY_LATENCY_BREAKDOWN], ref_edge_stats[QUERY_LATENCY_BREAKDOWN], QUERY_LATENCY)
             diff = (diff_rate + diff_latency) * 0.5
             # diff = diff_rate
     else: # MIXED workload
@@ -82,8 +83,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         
         diff_failed_insert, diff_failed_query = None, None
 
-        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
-        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0))[0]
+        failed_insert_ref = ref_edge_stats.get(FAILED_INSERT_COUNT, (0.0,))[0]
+        failed_insert_adj = adj_edge_stats.get(FAILED_INSERT_COUNT, (0.0,))[0]
 
         total_insertions = failed_insert_ref + ref_edge_stats[INSERT_COUNT][0]
         margin_insert = total_insertions * config.FAILED_OPERATION_MARGIN
@@ -92,8 +93,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         if not -margin_insert < failed_insert_diff < margin_insert:
             diff_failed_insert = failed_insert_diff / total_insertions
 
-        failed_query_ref = ref_query_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
-        failed_query_adj = adj_query_stats.get(FAILED_QUERY_COUNT, (0.0))[0]
+        failed_query_ref = ref_query_stats.get(FAILED_QUERY_COUNT, (0.0,))[0]
+        failed_query_adj = adj_query_stats.get(FAILED_QUERY_COUNT, (0.0,))[0]
 
         total_queries = failed_query_ref + ref_query_stats[QUERY_COUNT][0]
         margin_query = total_queries * config.FAILED_OPERATION_MARGIN
@@ -112,8 +113,8 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
             diff_insert_rate = compare(ref_edge_stats, adj_edge_stats, INSERT_RATE)
             diff_insert_latency = compare(adj_edge_stats, ref_edge_stats, INSERT_LATENCY)
             diff_query_rate = compare(ref_query_stats, adj_query_stats, QUERY_RATE)
-            diff_query_latency = compare(adj_query_stats, ref_query_stats, QUERY_LATENCY)
-            
+            diff_query_latency = compare(adj_query_stats[QUERY_LATENCY_BREAKDOWN], ref_query_stats[QUERY_LATENCY_BREAKDOWN], QUERY_LATENCY)
+
             diff_insert = (diff_insert_rate + diff_insert_latency) / 2
             # diff_query = (diff_query_rate + diff_query_latency) / 2
             diff_query = diff_query_latency
