@@ -5,7 +5,7 @@ import yaml
 import os
 import shutil
 
-def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, disk_adjusts: int = -1) ->  str:
+def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, io_multiplier: float = -1.0) ->  str:
     """ Execute a test run with the given configuration and server settings.
 
     Args:
@@ -27,10 +27,10 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
 
 
     test_name = ""
-    if disk_adjusts != -1:
-        test_name = f"run-{cpu_value}-disk-adjusts-{disk_adjusts}"
+    if io_multiplier != -1.0:
+        test_name = f"run-{cpu_value}-disk-{io_multiplier}"
     else:
-        test_name = f"run-{cpu_value}"
+        test_name = f"run-{cpu_value}-only-cpu"
 
     output_dir = os.path.join(config.OUTPUT_PATH, test_name)
     if os.path.exists(output_dir) and len(os.listdir(output_dir)) != 0:

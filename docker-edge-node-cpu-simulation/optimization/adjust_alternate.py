@@ -57,6 +57,21 @@ def solve_axis(axis_value: float, other_value: float):
     """
     return axis_value / other_value
 
+def append_alternate_history(
+        cpu_value: float, 
+        io_multiplier: float,
+        bias: int,
+        diff: float):
+    """ Append a new entry to the alternate history in the state.
+    Args:
+        cpu_value (float): Current CPU value
+        io_multiplier (float): Current Disk I/O multiplier
+        bias (int): Current bias value
+        diff (float): Difference between reference and adjusted results
+    """
+    state.alternate_history.append(((calculate_axis(cpu_value, io_multiplier), cpu_value, io_multiplier), bias, diff, time.time()))
+    state.alternate_history.sort(key= lambda x: x[0][0])
+
 def calculate_next_value_alternate(
         current_cpu_value: float, 
         current_io_multiplier: dict[str, float],
@@ -83,6 +98,7 @@ def calculate_next_value_alternate(
     diff = min(max(compare_results(reference_results, adjusted_results, config_type), -0.8), 0.8)
 
     axis_value = calculate_axis(current_cpu_value, current_io_multiplier)
+    append_alternate_history(current_cpu_value, current_io_multiplier, current_bias, diff)
     
     if state.keep_axis:
         state.axis_history.append((axis_value, current_bias, diff))
@@ -137,10 +153,6 @@ def calculate_next_value_alternate(
         if cpu >= 0.15 and 0.1 <= disk <= 1.0:
             return  (cpu, disk, bias)
 
-
-    state.alternate_history.append(((axis_value, current_cpu_value, current_io_multiplier), current_bias, diff, time.time()))
-    state.alternate_history.sort(key= lambda x: x[0][0])
-    
     lower = upper = None
 
     for i in range(1, len(state.alternate_history)):

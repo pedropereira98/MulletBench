@@ -3,6 +3,16 @@ from workload import WorkloadType
 from optimization.compare import compare_results
 import time
 
+def append_cpu_history(cpu_value: float, diff: float):
+    """ Append a new entry to the CPU history.
+
+    Args:
+        cpu_value (float): The CPU value used in the test run.
+        diff (float): The difference between reference and adjusted results.
+    """
+    config.cpu_history.append((cpu_value, diff, time.time()))
+    config.cpu_history.sort(key=lambda x: x[0])
+
 def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> float:
     """ Calculate the next CPU value based on the current CPU value and the difference between reference and adjusted results.
 
@@ -23,8 +33,7 @@ def calculate_next_value_cpu(current_cpu_value: float, reference_results: dict, 
     if abs(diff) >= 0.8:
         diff = 0.8 if diff > 0 else -0.8
 
-    config.cpu_history.append((current_cpu_value, diff, time.time()))
-    config.cpu_history.sort(key=lambda x: x[0])
+    append_cpu_history(current_cpu_value, diff)
 
     lower = upper = None
 

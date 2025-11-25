@@ -20,6 +20,15 @@ def multiply_disk_io(base_io_limits: dict, multiplier: float) -> dict:
 
     return new_limits
 
+def append_disk_io_history(io_multiplier: float, diff: float):
+    """ Append a new entry to the Disk I/O history.
+
+    Args:
+        io_multiplier (float): The Disk I/O multiplier used in the test run.
+        diff (float): The difference between reference and adjusted results.
+    """
+    state.disk_io_history.append((io_multiplier, diff, time.time()))
+    state.disk_io_history.sort(key=lambda x: x[0])
 
 def calculate_next_value_disk_io(current_io_multiplier: float, reference_results: dict, adjusted_results: dict, config_type = WorkloadType.INSERTION) -> float:
     """ Calculate the next Disk I/O value based on the current Disk I/O value and the difference between reference and adjusted results.
@@ -41,8 +50,7 @@ def calculate_next_value_disk_io(current_io_multiplier: float, reference_results
     if abs(diff) >= 0.8:
         diff = 0.8 if diff > 0 else -0.8
 
-    state.disk_io_history.append((current_io_multiplier, diff, time.time()))
-    state.disk_io_history.sort(key=lambda x: int(x[0]))
+    append_disk_io_history(current_io_multiplier, diff)
 
     lower = upper = None
 
