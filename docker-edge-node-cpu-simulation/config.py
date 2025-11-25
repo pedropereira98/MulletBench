@@ -17,5 +17,8 @@ class Config:
         self.MIN_CPU_VALUE = 0.15
         self.FAILED_OPERATION_MARGIN = 0.2
         self.PRINT_DEBUG = False
+        
+        self.DISK_BPS_REGEX = re.compile(r"(\d+\.\d+)\s*(M|G)")
+
 
 config = Config()
