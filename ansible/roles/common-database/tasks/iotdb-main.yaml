@@ -55,11 +55,26 @@
   debug:
     msg: "{{ 'IoTDB is ready' if wait_result.state == 'started' else 'IoTDB is not ready' }}"
 
-- name: Wait for instance to be ready (log file)
-  ansible.builtin.wait_for:
-    path: /home/iotdb/{{ inventory_hostname }}/logs/log_datanode_info.log
-    search_regex: "IoTDB DataNode is set up successfully"
-    delay: 2
+- name: Check current timestamp_precision in IoTDB
+  community.docker.docker_container_exec:
+    container: iotdb-{{ inventory_hostname }}
+    command: >
+      bash -c "grep '^timestamp_precision=' /iotdb/conf/iotdb-common.properties | cut -d'=' -f2"
+  register: current_precision
+
+- name: Set timestamp_precision=ns if needed
+  community.docker.docker_container_exec:
+    container: iotdb-{{ inventory_hostname }}
+    command: >
+      bash -c "sed -i 's/^timestamp_precision=.*/timestamp_precision=ns/' /iotdb/conf/iotdb-common.properties"
+  when: current_precision.stdout.strip() != "ns"
+  register: timestamp_patch
+
+- name: Restart IoTDB after timestamp precision change
+  community.docker.docker_compose_v2:
+    project_src: /tmp/iotdb/{{ inventory_hostname }}/
+    state: restarted
+  when: current_precision.stdout.strip() != "ns"
 
 - name: Set retention period
   community.docker.docker_container_exec:
