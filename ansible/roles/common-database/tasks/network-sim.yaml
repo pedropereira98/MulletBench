@@ -42,6 +42,11 @@
       command: python3 -m pip install --ignore-installed requests==2.31.0 
       become: true
 
+    - name: Downgrade pyroute2 package if python version is less than 3.9
+      when: py3_version is defined and (py3_version | version_compare('3.9', '<'))
+      command: python3 -m pip install --ignore-installed pyroute2==0.8.1
+      become: true
+
     - name: Remove any previous tcconfig settings
       ansible.builtin.shell:
         "tcdel {{ veth_interface }} -a"
