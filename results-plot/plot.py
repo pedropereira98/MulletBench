@@ -1,6 +1,7 @@
 import datetime
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from pathlib import Path
 import re
 import os
@@ -8,8 +9,8 @@ import glob
 from datetime import datetime, timedelta
 
 epoch = datetime.utcfromtimestamp(0)
-images_folder = "results/resource_det_query/downsampling/Adjusted_Down/run-1/images/"
-data_folder = "results/resource_det_query/downsampling/Adjusted_Down/run-1/data/"
+images_folder = "results/Iotdb_Resource_Det_Insert_9_Workers/run-1/images/"
+data_folder = "results/Iotdb_Resource_Det_Insert_9_Workers/run-1/data/"
 metrics_folder = "metrics/"
 monitoring_folder = "monitoring/"
 os.makedirs(images_folder, exist_ok=True)
@@ -31,9 +32,9 @@ stages_min = [] #minimum timestamp for each stage
 stages_max = [] #max timestamp for each stage
 current_stage = 0 #works if 
 
-PLOT_INDIVIDUAL_CLIENTS = True
+PLOT_INDIVIDUAL_CLIENTS = False
 PLOT_AGGREGATE_CLIENTS = True
-PLOT_CLIENT_MONITORING = True
+PLOT_CLIENT_MONITORING = False
 PLOT_DB_MONITORING = True
 
 plt.rcParams['font.family'] = ['NewsGotT'] #font for thesis
@@ -449,13 +450,15 @@ def plot_aggregate_benchmark_clients(file_paths: list):
 def main():
     global data_folder, images_folder, stages_max, stages_min, current_stage
 
+    font_manager.fontManager.addfont('NewsGotT.ttf')
+
     if PLOT_INDIVIDUAL_CLIENTS:
-        for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+        for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
             plot_benchmark_client(data_folder + client)
 
     if PLOT_AGGREGATE_CLIENTS:
         clients = []
-        for client in glob.glob("client[0-9].csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+        for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
             clients.append(data_folder + client)
 
         plot_aggregate_benchmark_clients(clients)

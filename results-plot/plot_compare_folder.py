@@ -1,5 +1,4 @@
 import datetime
-import fractions
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -7,10 +6,16 @@ import re
 import os
 import glob
 from datetime import datetime, timedelta
-import json
-
+import matplotlib.font_manager as font_manager
 import numpy as np
 from collections import defaultdict
+import argparse
+
+parser = argparse.ArgumentParser(description="Compare benchmark results across multiple test runs.")
+parser.add_argument("data_folder", type=str, help="Path to the folder containing benchmark result subfolders")
+parser.add_argument("images_folder", type=str, help="Name of the folder to save generated images. It will be created inside the data_folder if it does not exist.")
+
+
 
 # Global storage for aggregated stage statistics
 stage_stats = {}
@@ -205,6 +210,9 @@ def monitor_df_from_path(file_path: str, name: str = ""):
 
 def plot_stage_lines():
     ax = plt.gca()
+
+    if len(stage_stats) <= 1:
+        return
     
     xlabel = ax.get_xlabel()
     scale = 60.0 if "(m)" in xlabel else 1.0
@@ -403,7 +411,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     for label, df in client_dfs.items():
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
-            resample_time = 40.0
+            resample_time = 80.0
             insert_amount = query_groups.get_group("INSERT")['amount']
             insert_throughput = insert_amount.resample(f"{resample_time}s").sum().map(lambda el: el/resample_time).map(lambda el: (el/runs_per_client[label]) if runs_per_client else el)
             insert_throughput.index = insert_throughput.index.map(lambda el: seconds_millis(el) / 60)
@@ -427,7 +435,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
             insert_latency =  query_groups.get_group("INSERT")['latency']
-            latency_mean = insert_latency.resample("20s").mean()
+            latency_mean = insert_latency.resample("50s").mean()
             latency_mean.index = latency_mean.index.map(lambda el : seconds_millis(el) / 60)
             ax.plot(latency_mean, label=label, linestyle=line_styles_copy.pop(0))
             
@@ -471,7 +479,7 @@ def plot_query_client(file_path: str, query_groups_per_run):
                 # interpolate to avoid gaps
                 downsampled_group.interpolate(method='linear', inplace=True)
 
-                print(f"Average latency for {name}{id} {t}: {downsampled_group['latency'].mean()}")
+                # print(f"Average latency for {name}{id} {t}: {downsampled_group['latency'].mean()}")
                 # Plot the downsampled data
                 ax.plot(seconds_millis(downsampled_group.index), downsampled_group.latency, c=color, label=f"{name }{id}", alpha=0.8, linewidth=1, linestyle=style.pop(0))
                 # ax.scatter(seconds_millis(group.index), group.latency,c=color, label=f"{name }{id}", alpha = 0.8, s=4)
@@ -498,7 +506,6 @@ def plot_benchmark_client(file_path: str):
             for run in os.listdir(data_folder + folder + "/"):
                 if IGNORE_FIRST and run == "run-1":
                     continue
-                print(folder, run)
                 if os.path.isdir(data_folder + folder + "/" + run + "/"):
                     
                     if file_path in os.listdir(data_folder + folder + "/" + run + "/data/"):
@@ -520,7 +527,7 @@ def plot_benchmark_client(file_path: str):
             min_after = client_df['after'].min()
             client_df['after'] =  (client_df['after'] - min_after)
 
-            print(f"Average latency for {file_path}: {client_df['latency'].mean()}")
+            # print(f"Average latency for {file_path}: {client_df['latency'].mean()}")
 
             client_df.sort_values('after', inplace=True)
             client_df.set_index('after', inplace=True)
@@ -612,7 +619,7 @@ def plot_aggregate_benchmark_clients(file_paths):
 
                     insert_throughput.index = insert_throughput.index.map(lambda el : seconds_millis(el))
                     
-                    print(f"Average throughput for {file_path}: {insert_throughput.mean()}")
+                    # print(f"Average throughput for {file_path}: {insert_throughput.mean()}")
 
 
     if all(len(insert_client_dfs[id]) > 0 for id in insert_client_dfs):
@@ -638,11 +645,30 @@ def plot_aggregate_benchmark_clients(file_paths):
 
 
 def main():
-    
-    import matplotlib.font_manager as font_manager
+    global data_folder, images_folder
+    args = parser.parse_args()
+
+    if args.data_folder and args.images_folder:
+        if not os.path.isdir(args.data_folder):
+            raise ValueError(f"Data folder does not exist: {args.data_folder}")
+        data_folder = args.data_folder
+        images_folder = os.path.join(data_folder, args.images_folder)
+        
+        if data_folder[-1] != "/":
+            data_folder += "/"
+        if images_folder[-1] != "/":
+            images_folder += "/"
+        os.makedirs(images_folder, exist_ok=True)
+        os.makedirs(images_folder+metrics_folder, exist_ok=True)
+        os.makedirs(images_folder+monitoring_folder, exist_ok=True)
+    elif (not args.data_folder) ^ (not args.images_folder):
+        raise ValueError("Both data_folder and images_folder arguments must be provided together.")
+
     font_manager.fontManager.addfont('NewsGotT.ttf')
     
     compute_stage_statistics()
+    
+    print(stage_stats)
     
     if PLOT_INDIVIDUAL_CLIENTS:
         
@@ -651,7 +677,6 @@ def main():
         clients = []
         
         for folder in os.listdir(data_folder):
-            print(f"{folder = }")
             if "ignore" in folder:
                 continue
             if not "images" in folder and os.path.isdir(data_folder + folder + "/"):
@@ -659,12 +684,8 @@ def main():
                     # verify if it is a directory
                     if not os.path.isdir(data_folder + folder + "/" + run + "/"):
                         continue
-                    print(f"{run = }")
-                    print(f"{clients = }")
                     path = data_folder + folder + "/" + run + "/data/"
-                    print(f"{path = }")
                     for file_path in glob.glob("client*.csv", root_dir=path):
-                        print(f"{file_path = }")
                         clients.append(file_path)
         
         for file_path in clients:
