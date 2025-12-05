@@ -174,7 +174,7 @@ def calculate_next_value_alternate(
     next_axis = axis_value - (diff * axis_value)
     
     if current_io_multiplier == 1:
-        return (solve_axis(next_axis, 1.0), 1.0, 0)
+        return (max(0.15, solve_axis(next_axis, 1.0)), 1.0, 0)
     
     next_cpu = current_cpu_value
     next_disk = current_io_multiplier

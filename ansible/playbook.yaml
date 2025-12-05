@@ -37,15 +37,21 @@
       when: 
         - py3ver.stdout is defined
 
+    - name: extract major.minor version
+      ansible.builtin.set_fact:
+        py3_short_version: "{{ py3_version | regex_search('^\\d+\\.\\d+') }}"
+      when:
+        - py3_version is defined
+
     - name: remove EXTERNALLY-MANAGED if we're on Ubuntu 23 and Python >= 3.11
       ansible.builtin.file:
-        path: /usr/lib/python3.11/EXTERNALLY-MANAGED
+        path: "/usr/lib/python{{ py3_short_version }}/EXTERNALLY-MANAGED"
         state: absent
       when: 
         - ansible_distribution == "Ubuntu"
         - ansible_distribution_version >= "23"
-        - py3ver.stdout is defined
-        - py3ver.stdout | regex_replace('Python ', '') is ansible.builtin.version_compare('3.11', '>=')
+        - py3_version is defined
+        - py3_version is ansible.builtin.version_compare('3.11', '>=')
 
 - name: Install docker and docker compose for all hosts
   hosts: all:localhost
