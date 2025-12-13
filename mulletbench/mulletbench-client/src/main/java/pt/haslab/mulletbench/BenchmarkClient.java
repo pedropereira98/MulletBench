@@ -7,6 +7,10 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 
@@ -85,12 +89,48 @@ public class BenchmarkClient {
         }
     }
 
+    private String findCgroupsVersion() {
+        return Files.exists(Path.of("/sys/fs/cgroup/cgroup.controllers")) ? "v2" : "v1";
+    }
+
+    private String findContainerID() {
+    try {
+        // Attempt to read from cgroup info
+        List<String> lines = Files.readAllLines(Paths.get("/proc/self/cgroup"));
+        for (String line : lines) {
+            if (line.contains("docker")) {
+                String[] parts = line.split("/");
+                String candidate = parts[parts.length - 1];
+                if (!candidate.isEmpty()) {
+                    // Return full container ID from cgroup
+                    return candidate;
+                }
+            }
+        }
+
+        // Fallback: hostname (short ID)
+        String hostname = java.net.InetAddress.getLocalHost().getHostName();
+        if (hostname != null && !hostname.isEmpty()) {
+            return hostname.length() > 12 ? hostname.substring(0, 12) : hostname;
+        }
+    } catch (IOException e) {
+        logger.error("Failed to determine container ID", e);
+    }
+    return null;
+}
+
     private void connect() throws IOException {
         this.orchestratorSocket = new Socket(InetAddress.getByName(options.orchestratorAddress), options.orchestratorPort);
         logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " " + orchestratorSocket.getPort());
 
         this.objOut = new ObjectOutputStream(new BufferedOutputStream(orchestratorSocket.getOutputStream())); // better for larger writes
-        this.objOut.writeObject(options.clientId + ";" + options.clientAddress + ";" + options.containerID + ";" + options.cgroupsVersion);
+        String containerID = this.findContainerID();
+        if (containerID == null) {
+            containerID = "N/A";
+        }
+        String cgroupsVersion = this.findCgroupsVersion();
+
+        this.objOut.writeObject(options.clientId + ";" + options.clientAddress + ";" + containerID + ";" + cgroupsVersion);
         this.objOut.flush();
         this.objIn = new ObjectInputStream(orchestratorSocket.getInputStream());
         logger.debug("Wrote object with " + options.clientId);

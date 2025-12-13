@@ -39,7 +39,7 @@ nodes:
   - name: {{ host }}
     layer: CLOUD
     address: {{ hostvars[host]['ansible_host'] }}
-    monitor: {{ hostvars[host]['monitor'] -}}
+    monitor: {{ hostvars[host]['monitor'] }}
     containerID: {{ hostvars[host]['container_id'] }}
-    cgroupsVersion: {{ hostvars[host]['cgroups_version'] }}
+    cgroupsVersion: {{ hostvars[host]['cgroups_version'] -}}
 {% endfor -%}

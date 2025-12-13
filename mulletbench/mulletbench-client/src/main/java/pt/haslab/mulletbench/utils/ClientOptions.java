@@ -14,8 +14,6 @@ public class ClientOptions {
 
     public String clientId;
     public String clientAddress = "127.0.0.1";
-    public String containerID = "";
-    public String cgroupsVersion = "";
     public String orchestratorAddress = "127.0.0.1";
 
     public int orchestratorPort = 27205;
