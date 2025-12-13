@@ -7,4 +7,6 @@ public class NodeOptions {
     public DatabaseNode.Layer layer;
     public String address;
     public boolean monitor;
+    public String containerID="";
+    public String cgroupsVersion="";
 }

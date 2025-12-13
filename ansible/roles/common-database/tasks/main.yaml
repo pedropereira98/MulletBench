@@ -33,6 +33,28 @@
 - name: Run database instalation
   ansible.builtin.include_tasks: "{{ database }}-main.yaml"
 
+- name: Save container ID and cgroups version when monitoring is enabled
+  block:
+  - name: Get container ID
+    become: true
+    shell: docker inspect --format="{{.Id}}" {{ database }}-{{ inventory_hostname }}
+    register: container_id_result
+    changed_when: false
+
+  - name: Set container ID fact
+    ansible.builtin.set_fact:
+      container_id: "{{ container_id_result.stdout }}"
+
+  - name: Get cgroup version
+    ansible.builtin.shell: '[ -f /sys/fs/cgroup/cgroup.controllers ] && echo "v2" || echo "v1"'
+    register: cgroup_version
+    changed_when: false
+
+  - name: Set cgroups version fact
+    ansible.builtin.set_fact:
+      cgroups_version: "{{ cgroup_version.stdout }}"
+  when: monitor
+
 - name: Set network simulation
   ansible.builtin.include_tasks:
     "network-sim.yaml"

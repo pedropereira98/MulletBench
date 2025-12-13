@@ -53,14 +53,14 @@ public class Orchestrator {
 
         for(NodeOptions optionsNode: options.nodes){
             InetAddress address = InetAddress.getByName(optionsNode.address);
-            DatabaseNode node = new DatabaseNode(optionsNode.name, optionsNode.layer, address, optionsNode.monitor);
+            DatabaseNode node = new DatabaseNode(optionsNode.name, optionsNode.layer, address, optionsNode.containerID, optionsNode.cgroupsVersion, optionsNode.monitor);
             nodes.put(optionsNode.name, node);
         }
 
         for(ClientOptions clientOptions: options.clients){
             InetAddress address = InetAddress.getByName(clientOptions.address);
             DatabaseNode dbNode = nodes.get(clientOptions.target);
-            Client c = new Client(clientOptions.name, address, dbNode, clientOptions.type, clientOptions.monitor);
+            Client c = new Client(clientOptions.name, address, dbNode, clientOptions.type, clientOptions.containerID, clientOptions.cgroupsVersion, clientOptions.monitor);
 
             ClientAddress clientAddress;
 
@@ -169,7 +169,7 @@ public class Orchestrator {
     private void startMonitoringDatabase(){
         for(DatabaseNode node: nodes.values()) {
             if (node.monitor()){
-                monitoringController.monitorDatabase(database + "-" + node.getName(), node.getName() + ".csv", node.getAddress().toString().split("/")[1]);
+                monitoringController.monitorDatabase(database + "-" + node.getName(),node.getContainerID(), node.getCgroupsVersion(), node.getName() + ".csv", node.getAddress().toString().split("/")[1]);
             }
         }
     }
@@ -181,7 +181,9 @@ public class Orchestrator {
             for(Client client: clientAddress.getClients()){
                 if (client.monitor() && stageClientIDs.contains(client.name)){
                     String clientName = client.getName();
-                    monitoringController.monitorClient(clientName, clientName + ".csv", clientAddress.getAddress().toString().split("/")[1]);
+                    String clientContainerID = client.getContainerID();
+                    String clientCgroupsVersion = client.getCgroupsVersion();
+                    monitoringController.monitorClient(clientName, clientContainerID, clientCgroupsVersion, clientName + ".csv", clientAddress.getAddress().toString().split("/")[1]);
                 }
             }
         }

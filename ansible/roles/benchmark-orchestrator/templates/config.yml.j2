@@ -12,6 +12,8 @@ clients:
     type: {{ hostvars[host]['type'] }}
     target: {{ hostvars[host]['target'] }}
     monitor: {{ hostvars[host]['monitor'] }}
+    containerID: {{ hostvars[host]['container_id'] }}
+    cgroupsVersion: {{ hostvars[host]['cgroups_version'] }}
 {% if hostvars[host]['query_seed'] is defined %}
     querySeed: {{ hostvars[host]['query_seed'] }}
 {% endif %}
@@ -32,10 +34,14 @@ nodes:
     layer: EDGE
     address: {{ hostvars[host]['ansible_host'] }}
     monitor: {{ hostvars[host]['monitor'] }}
+    containerID: {{ hostvars[host]['container_id'] }}
+    cgroupsVersion: {{ hostvars[host]['cgroups_version'] }}
 {% endfor -%}
 {% for host in groups['cloudservers']|list %}
   - name: {{ host }}
     layer: CLOUD
     address: {{ hostvars[host]['ansible_host'] }}
     monitor: {{ hostvars[host]['monitor'] -}}
+    containerID: {{ hostvars[host]['container_id'] }}
+    cgroupsVersion: {{ hostvars[host]['cgroups_version'] }}
 {% endfor -%}

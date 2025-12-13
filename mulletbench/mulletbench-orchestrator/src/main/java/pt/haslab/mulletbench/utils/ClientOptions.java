@@ -9,6 +9,8 @@ public class ClientOptions {
     public WorkloadType type;
     public String target;
     public boolean monitor;
+    public String containerID="";
+    public String cgroupsVersion="";
     public long querySeed = -1L;
 
     @Override

@@ -13,11 +13,15 @@ public class DatabaseNode {
     public final Layer layer;
     private final InetAddress address;
     private final boolean monitor;
+    private final String containerID;
+    private final String cgroupsVersion;
 
-    public DatabaseNode(String name, Layer layer, InetAddress address, boolean monitor) {
+    public DatabaseNode(String name, Layer layer, InetAddress address, String containerID, String cgroupsVersion, boolean monitor) {
         this.name = name;
         this.layer = layer;
         this.address = address;
+        this.containerID = containerID;
+        this.cgroupsVersion = cgroupsVersion;
         this.monitor = monitor;
     }
 
@@ -31,5 +35,13 @@ public class DatabaseNode {
 
     public boolean monitor(){
         return monitor;
+    }
+
+    public String getContainerID() {
+        return containerID;
+    }
+
+    public String getCgroupsVersion() {
+        return cgroupsVersion;
     }
 }
