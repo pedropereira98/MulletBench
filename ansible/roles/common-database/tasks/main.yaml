@@ -37,7 +37,7 @@
   block:
   - name: Get container ID
     become: true
-    shell: docker inspect --format="{{.Id}}" {{ database }}-{{ inventory_hostname }}
+    shell: docker container ls --all --quiet --no-trunc --filter "name=^{{ database }}-{{ inventory_hostname }}$"
     register: container_id_result
     changed_when: false
 

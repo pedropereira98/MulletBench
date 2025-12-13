@@ -60,7 +60,7 @@ public class Orchestrator {
         for(ClientOptions clientOptions: options.clients){
             InetAddress address = InetAddress.getByName(clientOptions.address);
             DatabaseNode dbNode = nodes.get(clientOptions.target);
-            Client c = new Client(clientOptions.name, address, dbNode, clientOptions.type, clientOptions.containerID, clientOptions.cgroupsVersion, clientOptions.monitor);
+            Client c = new Client(clientOptions.name, address, dbNode, clientOptions.type, clientOptions.monitor);
 
             ClientAddress clientAddress;
 
@@ -223,26 +223,33 @@ public class Orchestrator {
                 String receivedMessage = (String) clientObjIn.readObject();
                 String[] parts = receivedMessage.split(";");
 
-                if (parts.length < 2) {
+                if (parts.length < 4) {
                     logger.error("Received invalid message from " + socketAddress);
                     continue;
                 }
 
                 String clientID = parts[0];
                 String clientAddress = parts[1];
+                String containerID = parts[2];
+                String cgroupsVersion = parts[3];
                 InetAddress clientInetAddress = InetAddress.getByName(clientAddress);
 
 
                 if(clientAddresses.containsKey(clientInetAddress) && clientAddresses.get(clientInetAddress).containsClient(clientID)){
                     logger.debug("Adding " + clientInetAddress);
-
                     logger.info("Received " + clientID);
 
-                    if(clientAddresses.get(clientInetAddress).connect(clientID, receivedSocket, clientObjIn)){
+                    ClientAddress ca = clientAddresses.get(clientInetAddress);
+
+                    if(ca.connect(clientID, receivedSocket, clientObjIn)){
                         receivedClients++;
+                        Client client = ca.getClient(clientID);
+                        client.setContainerID(containerID);
+                        client.setCgroupsVersion(cgroupsVersion);
                     } else {
                         logger.error("Address already received all clients");
                     }
+
                 } else {
                     logger.error("Received unexpected connection with socketAddress " + socketAddress + " and clientAddress " + clientInetAddress);
                 }

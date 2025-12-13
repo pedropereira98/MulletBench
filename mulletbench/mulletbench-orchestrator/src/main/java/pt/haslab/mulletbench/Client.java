@@ -35,16 +35,16 @@ public class Client implements Runnable {
     private WorkloadType type;
 
     private final boolean monitor;
-    private final String containerID;
-    private final String cgroupsVersion;
+    private String containerID;
+    private String cgroupsVersion;
 
     public StatsCollector statsCollector; //received after execution
 
 
-    public Client(String name, InetAddress address, DatabaseNode node, WorkloadType type, String containerID, String cgroupsVersion, boolean monitor) {
+    public Client(String name, InetAddress address, DatabaseNode node, WorkloadType type, boolean monitor) {
         this.name = name;
-        this.containerID = containerID;
-        this.cgroupsVersion = cgroupsVersion;
+        this.containerID = "";
+        this.cgroupsVersion = "";
         this.address = address;
         this.status = Status.UNKNOWN;
         this.node = node;
@@ -70,8 +70,16 @@ public class Client implements Runnable {
         return containerID;
     }
 
+    public void setContainerID(String containerID) {
+        this.containerID = containerID;
+    }
+
     public String getCgroupsVersion() {
         return cgroupsVersion;
+    }
+
+    public void setCgroupsVersion(String cgroupsVersion) {
+        this.cgroupsVersion = cgroupsVersion;
     }
 
     public void connect(Socket socket, ObjectInputStream objIn) throws IOException{

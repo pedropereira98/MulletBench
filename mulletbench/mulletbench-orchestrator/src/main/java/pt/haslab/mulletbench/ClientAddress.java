@@ -42,6 +42,10 @@ public class ClientAddress {
         return clients.values();
     }
 
+    public Client getClient(String clientID){
+        return clients.get(clientID);
+    }
+
     public int numberOfClients(){
         return clients.size();
     }

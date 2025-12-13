@@ -90,7 +90,7 @@ public class BenchmarkClient {
         logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " " + orchestratorSocket.getPort());
 
         this.objOut = new ObjectOutputStream(new BufferedOutputStream(orchestratorSocket.getOutputStream())); // better for larger writes
-        this.objOut.writeObject(options.clientId + ";" + options.clientAddress);
+        this.objOut.writeObject(options.clientId + ";" + options.clientAddress + ";" + options.containerID + ";" + options.cgroupsVersion);
         this.objOut.flush();
         this.objIn = new ObjectInputStream(orchestratorSocket.getInputStream());
         logger.debug("Wrote object with " + options.clientId);

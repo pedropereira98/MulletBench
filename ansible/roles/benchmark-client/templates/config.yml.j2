@@ -1,5 +1,9 @@
 clientId: {{ inventory_hostname }}
 clientAddress: {{ ansible_host }}
+{% if container_id is defined and cgroups_version is defined -%}
+containerID: {{ container_id }}
+cgroupsVersion: {{ cgroups_version }}
+{% endif -%}
 orchestratorAddress: {{ orchestrator_ip }}
 dataFile: {{ data_file }}
 dataset: {{ dataset }} #dataset name (Accel or GPSMPU)
