@@ -107,15 +107,6 @@ public abstract class QueryGenerator {
         this.outlierMaxPercent = options.query.outlierMaxPercent;
         this.outlierMinRange = options.query.outlierMinRange;
         this.outlierMaxRange = options.query.outlierMaxRange;
-        // print percentages for debugging purposes
-        System.out.println("Aggregation Percentages: " + aggMinPercent + " - " + aggMaxPercent);
-        System.out.println("Filter Percentages: " + filterMinPercent + " - " + filterMaxPercent);
-        System.out.println("Downsample Percentages: " + downsampleMinPercent + " - " + downsampleMaxPercent);
-        System.out.println("Outlier Percentages: " + outlierMinPercent + " - " + outlierMaxPercent);
-        System.out.println("Aggregation Range: " + aggMinRange + " - " + aggMaxRange);
-        System.out.println("Filter Range: " + filterMinRange + " - " + filterMaxRange);
-        System.out.println("Downsample Range: " + downsampleMinRange + " - " + downsampleMaxRange);
-        System.out.println("Outlier Range: " + outlierMinRange + " - " + outlierMaxRange);
     }
 
     public void incrementSeed(long increment) {

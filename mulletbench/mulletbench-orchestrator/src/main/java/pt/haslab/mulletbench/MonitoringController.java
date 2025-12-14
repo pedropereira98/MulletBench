@@ -2,17 +2,9 @@ package pt.haslab.mulletbench;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -107,9 +99,9 @@ public class MonitoringController {
             Process globalProcess = Runtime.getRuntime().exec(globalCmd);
             Process containerProcess = Runtime.getRuntime().exec(containerCmd);
 
-            System.out.println(globalProcess.info().toString());
-            System.out.println(containerProcess.info().toString());
-            System.out.println("Started monitoring: " + containerName + " (" + containerID + ")");
+            logger.debug(globalProcess.info().toString());
+            logger.debug(containerProcess.info().toString());
+            logger.info("Started monitoring: " + containerName + " (" + containerID + ")");
             return new Process[]{globalProcess, containerProcess};
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -126,9 +118,9 @@ public class MonitoringController {
 
     public void monitorClient(String clientName, String containerID, String cgroupsVersion, String outputFileName, String address) {
         if (cgroupsVersion.equals("v2")) {
-            v2ClientMonitorProcesses.add(monitor(clientName, containerID, outputFileName, address));
+            v2ClientMonitorProcesses.add(monitor(clientContainerBase + clientName, containerID, outputFileName, address));
         } else {
-            v1ClientMonitorProcesses.add(monitor(clientName, outputFileName, address));
+            v1ClientMonitorProcesses.add(monitor(clientContainerBase + clientName, outputFileName, address));
         }
     }
 
@@ -144,7 +136,6 @@ public class MonitoringController {
                 logger.debug("Destroyed");
             }
         }
-        // TODO - filter global processes and join with container specific ones
         v2ClientMonitorProcesses.clear();
     }
 

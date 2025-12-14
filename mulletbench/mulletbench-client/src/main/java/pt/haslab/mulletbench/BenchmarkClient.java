@@ -243,8 +243,8 @@ public class BenchmarkClient {
         String firstRecord = firstRecordResult.get(0);
         String lastRecord = lastRecordResult.get(0);
 
-        System.out.println("First record: " + firstRecord);
-        System.out.println("Last record: " + lastRecord);
+        logger.debug("First record: " + firstRecord);
+        logger.debug("Last record: " + lastRecord);
 
         range[0] = parseQueryResult(firstRecord);
         range[1] = parseQueryResult(lastRecord);
