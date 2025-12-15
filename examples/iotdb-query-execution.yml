@@ -55,6 +55,36 @@ benchmark_clients:
       count_outlier_filter: false
       filter_z_score: 4.0
 
+      ranges:
+        aggregation:
+          percentage:
+            min: 0.15
+            max: 0.30
+          range:
+            min: 5s
+            max: 20m
+        downsample:
+          percentage:
+            min: 0.15
+            max: 0.30
+          range:
+            min: 1m
+            max: 2h
+        filter:
+          percentage:
+            min: 0.05
+            max: 0.1
+          range:
+            min: 5s
+            max: 20m
+        outlier_filter:
+          percentage:
+            min: 0.025
+            max: 0.075
+          range:
+            min: 5s
+            max: 20m
+
 
   vars:
     max_memory: 4G # max heap memory for the JVM for each client instance

@@ -18,16 +18,23 @@ The following options should be set for hosts in the *edgeservers* or *cloudserv
 | network\_sim | list of entries for network simulation configurations |
 | blkio\_path | block device path for IO limiting|
 
-#### Network simulation options
+#### Global Network simulation options
+
+
+
+| Option | Description |
+| --- | --- |
+| bandwidth |  global network bandwidth rate applied to the container (e.g., 400Kbps) |
+
+#### Per-target Network latency options (inside network_sim.latency)
+
 
 | Option | Description |
 | --- | --- |
 | target |  name of node to target in network configuration |
 | latency |  amount for roundtrip network delay (e.g., 50ms) |
 | latency\_normal\_distribution |  variation to be applied over latency with normal distribution (e.g., 10ms) |
-| bandwidth |  network bandwidth rate (e.g., 400Kbps) |
 | reordering\_rate |  percentage of packet reordering rate |
-
 
 ### Edge node options
 
@@ -42,7 +49,7 @@ The following options should be set for hosts in the *edgeservers* or *cloudserv
 | limited\_resources\_write\_bps | limit for written bytes per second in bytes |
 | limited\_resources\_read\_iops | limit for read operations per second in operations |
 | limited\_resources\_write\_iops | limit for write operations per second in operations |
-replication\_targets | list of cloud nodes to replicate data to|
+| replication\_targets | list of cloud nodes to replicate data to|
 
 Some variables are needed for each supported database:
 
@@ -109,11 +116,36 @@ Client options should be set for hosts in the *benchmark_clients* group.
 | outlier\_filter\_weight | weight for probability of outlier filter queries |
 | count\_outlier\_filter | whether outlier filter queries should use count aggregation, boolean  |
 | filter\_z\_score | target z-score used for outlier filters |
+| gzip | whether gzip compression should be used for requests sent to the database, boolean |
+| dump_queries | whether all generated queries should be written to an output file, boolean |
+| query_seed | seed to use for deterministic query generation, integer |
 | fjp\_parallelism | pending request ForkJoinPool size |
 | max\_memory | maximum to be used by Client container (e.g. 4G) |
 | orchestrator\_ip | IP address of orchestrator node|
 | write\_timeout | database write operation timeout in seconds|
 | read\_timeout | database read operation timeout in seconds|
+| ranges | optional configuration defining how query time ranges are generated per query type. Each query type may specify percentage-based ranges, absolute duration ranges, or both. All fields are optional and defaults are used when omitted. |
+
+### Query range configuration
+
+The ranges option is subdivided by query type. Each subdivision is optional and applies only to that query type.
+
+| Sub-option            | Description                                        |
+| --------------------- | -------------------------------------------------- |
+| aggregation    | configuration for aggregation query time ranges    |
+| filter         | configuration for filter query time ranges         |
+| downsample     | configuration for downsample query time ranges     |
+| outlier_filter | configuration for outlier-filter query time ranges |
+
+
+Each query-type subdivision supports the same set of fields described below.
+
+| Field          | Description                                                                                                                                                                            |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| percentage.min | optional — minimum percentage of the dataset’s total time span used to compute the query range. For example, if the dataset spans 2h and `min = 0.075`, the minimum range is 9 minutes |
+| percentage.max | optional — maximum percentage of the dataset’s total time span used to compute the query range                                                                                         |
+| range.min      | optional — minimum allowed query time range expressed as a duration (e.g., `5s`, `1m`). When percentages are used, computed ranges will not go below this value                        |
+| range.max      | optional — maximum allowed query time range expressed as a duration (e.g., `20m`, `2h`). When percentages are used, computed ranges will not exceed this value                         |
 
 ## Example configurations
 
