@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -102,7 +103,8 @@ public class MonitorMetricsProcessor {
         List<String> outputHeaders = new ArrayList<>();
         outputHeaders.add("Time");
         outputHeaders.add("memory_usage");
-        filteredHeaders.stream().filter(h -> h.contains("cpu")).forEach(h -> outputHeaders.add(h));
+        filteredHeaders.stream().filter(h -> h.contains("cpu") || h.contains("cgroup.io"))
+                .forEach(h -> outputHeaders.add(h));
         outputLines.add(String.join(",", outputHeaders));
 
         for (int i = 1; i < lines.size(); i++) {
@@ -120,15 +122,18 @@ public class MonitorMetricsProcessor {
             // Convert CPU
             for (String h : filteredHeaders) {
                 if (h.contains("cgroup.cpu.stat") && rowMap.get(h) != null && !rowMap.get(h).isEmpty()) {
-                    double cpu_period = Double.parseDouble(rowMap.get(h)) / 10000.0;
+                    DecimalFormat df = new DecimalFormat("#.###");
+                    double cpu_period = Double.parseDouble(df.format(Double.parseDouble(rowMap.get(h)) / 10000.0));
                     rowMap.put(h, String.valueOf(cpu_period));
                 }
             }
 
             // Calculate memory_usage (current - inactive_file)
             double mem = 0.0;
-            String current = filteredHeaders.stream().filter(f -> f.contains("cgroup.memory.current")).findFirst().orElse(null);
-            String inactive = filteredHeaders.stream().filter(f -> f.contains("cgroup.memory.stat.inactive_file")).findFirst().orElse(null);
+            String current = filteredHeaders.stream().filter(f -> f.contains("cgroup.memory.current")).findFirst()
+                    .orElse(null);
+            String inactive = filteredHeaders.stream().filter(f -> f.contains("cgroup.memory.stat.inactive_file"))
+                    .findFirst().orElse(null);
 
             if (current != null && !rowMap.get(current).isEmpty()) {
                 mem += Double.parseDouble(rowMap.get(current));
@@ -149,7 +154,6 @@ public class MonitorMetricsProcessor {
             Files.write(Paths.get(outputFile), outputLines);
         } catch (IOException e) {
             logger.error("Error writing filtered global metrics for containerID='" + containerID + "'.", e);
-            return;
         }
     }
 
@@ -185,11 +189,11 @@ public class MonitorMetricsProcessor {
 
         // disk
         combinedHeader.stream()
-                .filter(s -> s.contains("disk.dev.read_bytes"))
+                .filter(s -> s.contains("cgroup.io.stat.rbytes"))
                 .forEach(ordered::add);
 
         combinedHeader.stream()
-                .filter(s -> s.contains("disk.dev.write_bytes"))
+                .filter(s -> s.contains("cgroup.io.stat.wbytes"))
                 .forEach(ordered::add);
 
         return ordered;

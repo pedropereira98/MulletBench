@@ -81,6 +81,7 @@ public class MonitoringController {
             "pmrep", "-t", monitoringInterval, "-b", "MBytes",
             "-I", "cgroup.memory.current", "cgroup.memory.stat.inactive_file",
             "cgroup.cpu.stat.user", "cgroup.cpu.stat.system",
+            "cgroup.io.stat.rbytes", "cgroup.io.stat.wbytes",
             "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
             "-F", globalOutput, "-h", address
         };
@@ -90,7 +91,6 @@ public class MonitoringController {
             "pmrep", "-t", monitoringInterval, "-b", "MBytes",
             "-I", "--container", containerName,
             "network.interface.in.bytes", "network.interface.out.bytes",
-            "disk.dev.read_bytes", "disk.dev.write_bytes",
             "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
             "-F", containerOutput, "-h", address
         };
