@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -222,73 +223,86 @@ public class Orchestrator {
     public void run() {
         // open server socket
         // wait for connections from all clients
-        int tries = 0;
 
-        while (tries < MAX_CLIENT_CONNECTION_TRIES) {
+        try {
+            serverSocket.setSoTimeout(120000); // 2 minutes
+        } catch (SocketException e) {
+            throw new RuntimeException("Failed to set server socket timeout", e);
+        }
+
+        try {
+            Files.createDirectories(Paths.get(this.resultsFolder));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create results directory: " + this.resultsFolder, e);
+        }
+
+        int tries = 0;
+        int receivedClients = 0;
+
+        while (receivedClients < clients.size() &&
+                tries < MAX_CLIENT_CONNECTION_TRIES) {
 
             try {
-                int receivedClients = 0;
-                serverSocket.setSoTimeout(120000); // set 2 minute timeout for accepting connections
+                logger.info("Waiting for clients (" + receivedClients + "/" + clients.size() + ")");
 
-                // creates folder for results
-                Files.createDirectories(Paths.get(this.resultsFolder));
-                logger.info("Waiting for clients");
-                while (receivedClients < clients.size()) {
-                    Socket receivedSocket = serverSocket.accept();
-                    InetAddress socketAddress = receivedSocket.getInetAddress();
-                    logger.info("Received connection request from " + socketAddress.toString());
+                Socket receivedSocket = serverSocket.accept();
+                InetAddress socketAddress = receivedSocket.getInetAddress();
+                logger.info("Received connection request from " + socketAddress);
 
-                    ObjectInputStream clientObjIn = new ObjectInputStream(
-                            new BufferedInputStream(receivedSocket.getInputStream()));
-                    String receivedMessage = (String) clientObjIn.readObject();
-                    String[] parts = receivedMessage.split(";");
+                ObjectInputStream clientObjIn = new ObjectInputStream(
+                        new BufferedInputStream(receivedSocket.getInputStream()));
 
-                    if (parts.length < 4) {
-                        logger.error("Received invalid message from " + socketAddress);
-                        continue;
-                    }
+                String receivedMessage = (String) clientObjIn.readObject();
+                String[] parts = receivedMessage.split(";");
 
-                    String clientID = parts[0];
-                    String clientAddress = parts[1];
-                    String containerID = parts[2];
-                    String cgroupsVersion = parts[3];
-                    InetAddress clientInetAddress = InetAddress.getByName(clientAddress);
-
-                    if (clientAddresses.containsKey(clientInetAddress)
-                            && clientAddresses.get(clientInetAddress).containsClient(clientID)) {
-                        logger.debug("Adding " + clientInetAddress);
-                        logger.info("Received " + clientID);
-
-                        ClientAddress ca = clientAddresses.get(clientInetAddress);
-
-                        if (ca.connect(clientID, receivedSocket, clientObjIn)) {
-                            receivedClients++;
-                            Client client = ca.getClient(clientID);
-                            client.setContainerID(containerID);
-                            client.setCgroupsVersion(cgroupsVersion);
-                        } else {
-                            logger.error("Address already received all clients");
-                        }
-
-                    } else {
-                        logger.error("Received unexpected connection with socketAddress " + socketAddress
-                                + " and clientAddress " + clientInetAddress);
-                    }
-                }
-            } catch (SocketTimeoutException e) {
-                logger.error("Timeout while waiting for clients to connect");
-                tries++;
-                if (tries < 5) {
-                    logger.info("Retrying to receive clients (" + tries + "/5)");
+                if (parts.length < 4) {
+                    logger.error("Received invalid message from " + socketAddress);
+                    receivedSocket.close();
                     continue;
                 }
-                throw new RuntimeException("Timeout while waiting for clients to connect");
-            } catch (IOException e) {
-                logger.error("Connection to a client failed");
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
+
+                String clientID = parts[0];
+                String clientAddress = parts[1];
+                String containerID = parts[2];
+                String cgroupsVersion = parts[3];
+
+                InetAddress clientInetAddress = InetAddress.getByName(clientAddress);
+
+                ClientAddress ca = clientAddresses.get(clientInetAddress);
+
+                if (ca == null || !ca.containsClient(clientID)) {
+                    logger.error("Unexpected client: " + clientID + "@" + clientInetAddress);
+                    receivedSocket.close();
+                    continue;
+                }
+
+                if (ca.connect(clientID, receivedSocket, clientObjIn)) {
+                    receivedClients++;
+                    Client client = ca.getClient(clientID);
+                    client.setContainerID(containerID);
+                    client.setCgroupsVersion(cgroupsVersion);
+
+                    logger.info("Connected client " + clientID);
+                } else {
+                    logger.warn("Client already connected: " + clientID);
+                    receivedSocket.close();
+                }
+
+            } catch (SocketTimeoutException e) {
+                tries++;
+                logger.warn("Accept timeout (" + tries + "/" + MAX_CLIENT_CONNECTION_TRIES + ")");
+            } catch (IOException | ClassNotFoundException e) {
+                throw new RuntimeException("Client connection failed", e);
             }
+        }
+
+        if (receivedClients < clients.size()) {
+            throw new RuntimeException("Only received " + receivedClients + " out of " + clients.size() + " clients");
+        }
+
+        if (receivedClients < clients.size()) {
+            throw new RuntimeException(
+                    "Failed to receive all clients after " + tries + " retries");
         }
         // start resource metric collection
         startMonitoringDatabase();
