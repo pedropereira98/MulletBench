@@ -38,7 +38,6 @@ public class MonitorMetricsProcessor {
                 logger.warn("Unexpected directory name format: " + dirName);
                 return;
             }
-            // String containerName = parts[0];
             String containerID = parts[1];
 
             // get all files in the directory
@@ -46,21 +45,26 @@ public class MonitorMetricsProcessor {
 
             String globalMetricsFile = "";
             String containerMetricsFile = "";
+            String ioMetricsFile = "";
+
             for (String file : files) {
                 if (file.startsWith("global-")) {
                     globalMetricsFile = file;
                 } else if (file.startsWith("container-")) {
                     containerMetricsFile = file;
+                } else if (file.startsWith("io-")) {
+                    ioMetricsFile = file;
                 }
             }
 
-            if (globalMetricsFile.isEmpty() || containerMetricsFile.isEmpty()) {
+            if (globalMetricsFile.isEmpty() || containerMetricsFile.isEmpty() || ioMetricsFile.isEmpty()) {
                 logger.warn("Missing monitoring files in directory: " + dirName);
                 return;
             }
 
             String globalMetricsFilePath = dirPath + "/" + globalMetricsFile;
             String containerMetricsFilePath = dirPath + "/" + containerMetricsFile;
+            String ioMetricsFilePath = dirPath + "/" + ioMetricsFile;
 
             String[] auxParts = globalMetricsFile.split("-");
 
@@ -71,9 +75,12 @@ public class MonitorMetricsProcessor {
 
             String outputFileName = "monitor-" + auxParts[1];
             String filteredGlobalMetricsFile = dirPath + "/global-filtered-" + outputFileName;
+            String filteredIoMetricsFile = dirPath + "/io-filtered-" + outputFileName;
 
             filterGlobalMetrics(globalMetricsFilePath, filteredGlobalMetricsFile, containerID);
-            joinMetrics(filteredGlobalMetricsFile, containerMetricsFilePath, resultsFolder + "/" + outputFileName);
+            filterIoMetrics(ioMetricsFilePath, filteredIoMetricsFile, containerID);
+            joinMetrics(filteredGlobalMetricsFile, containerMetricsFilePath, filteredIoMetricsFile,
+                    resultsFolder + "/" + outputFileName);
         } catch (IOException e) {
             logger.error("Error processing monitoring data in directory: " + dirName, e);
         }
@@ -95,17 +102,17 @@ public class MonitorMetricsProcessor {
 
         String[] headers = lines.get(0).split(",");
         List<String> filteredHeaders = Arrays.stream(headers)
-                .filter(h -> h.contains(containerID) || h.equals("Time") || h.equals("Timestamp")
-                        || h.equals("Interval"))
+                .filter(h -> h.contains(containerID) || h.equals("Time"))
                 .collect(Collectors.toList());
 
         List<String> outputLines = new ArrayList<>();
         List<String> outputHeaders = new ArrayList<>();
         outputHeaders.add("Time");
         outputHeaders.add("memory_usage");
-        filteredHeaders.stream().filter(h -> h.contains("cpu") || h.contains("cgroup.io"))
+        filteredHeaders.stream().filter(h -> h.contains("cpu"))
                 .forEach(h -> outputHeaders.add(h));
         outputLines.add(String.join(",", outputHeaders));
+        logger.info("Filtered Global Headers: " + outputHeaders);
 
         for (int i = 1; i < lines.size(); i++) {
             String[] values = lines.get(i).split(",", -1);
@@ -154,6 +161,59 @@ public class MonitorMetricsProcessor {
             Files.write(Paths.get(outputFile), outputLines);
         } catch (IOException e) {
             logger.error("Error writing filtered global metrics for containerID='" + containerID + "'.", e);
+        }
+    }
+
+    private void filterIoMetrics(String ioMetricsFile, String outputFile, String containerID) {
+
+        List<String> lines;
+
+        try {
+            lines = Files.readAllLines(Paths.get(ioMetricsFile));
+            if (lines.isEmpty()) {
+                return;
+            }
+        } catch (IOException e) {
+            logger.error("Error reading IO metrics file for containerID='" + containerID + "'.", e);
+            return;
+        }
+
+        String[] headers = lines.get(0).split(",");
+        List<String> filteredHeaders = Arrays.stream(headers)
+                .filter(h -> h.contains(containerID) || h.equals("Time"))
+                .collect(Collectors.toList());
+
+        List<String> outputLines = new ArrayList<>();
+        List<String> outputHeaders = new ArrayList<>();
+        outputHeaders.add("Time");
+        filteredHeaders.stream().filter(h -> h.contains("cgroup.io"))
+                .forEach(h -> outputHeaders.add(h));
+        outputLines.add(String.join(",", outputHeaders));
+        logger.info("Filtered IO Headers: " + outputHeaders);
+
+        for (int i = 1; i < lines.size(); i++) {
+            String[] values = lines.get(i).split(",", -1);
+            Map<String, String> rowMap = new HashMap<>();
+            for (int j = 0; j < headers.length; j++) {
+                rowMap.put(headers[j], values[j]);
+            }
+
+            // Handle missing fields
+            for (String h : filteredHeaders) {
+                rowMap.putIfAbsent(h, "0");
+            }
+
+            List<String> ordered = new ArrayList<>();
+            for (String h : outputHeaders) {
+                ordered.add(rowMap.get(h));
+            }
+            outputLines.add(String.join(",", ordered));
+        }
+
+        try {
+            Files.write(Paths.get(outputFile), outputLines);
+        } catch (IOException e) {
+            logger.error("Error writing filtered IO metrics for containerID='" + containerID + "'.", e);
         }
     }
 
@@ -207,7 +267,12 @@ public class MonitorMetricsProcessor {
 
         List<String> reordered = new ArrayList<>();
         for (String col : orderedHeader) {
-            reordered.add(row.get(indexMap.get(col)));
+            Integer idx = indexMap.get(col);
+            if (idx != null) {
+                reordered.add(row.get(idx));
+            } else {
+                reordered.add("0"); // Default value if column missing
+            }
         }
         return reordered;
     }
@@ -247,9 +312,11 @@ public class MonitorMetricsProcessor {
         return nearest;
     }
 
-    private void joinMetrics(String filteredGlobalMetricsFile, String containerMetricsFile, String outputFile) {
+    private void joinMetrics(String filteredGlobalMetricsFile, String containerMetricsFile,
+            String filteredIoMetricsFile, String outputFile) {
         List<String[]> globalRows;
         List<String[]> containerRows;
+        List<String[]> ioRows;
 
         try {
             globalRows = Files.lines(Paths.get(filteredGlobalMetricsFile))
@@ -258,34 +325,51 @@ public class MonitorMetricsProcessor {
             containerRows = Files.lines(Paths.get(containerMetricsFile))
                     .map(l -> l.split(",", -1))
                     .collect(Collectors.toList());
+            ioRows = Files.lines(Paths.get(filteredIoMetricsFile))
+                    .map(l -> l.split(",", -1))
+                    .collect(Collectors.toList());
         } catch (IOException e) {
             logger.error("Error reading metrics files for joining.", e);
             return;
         }
 
-        if (globalRows.isEmpty() || containerRows.isEmpty()) {
+        if (globalRows.isEmpty() || containerRows.isEmpty() || ioRows.isEmpty()) {
+            logger.error("One or more metric files are empty - global: " + globalRows.isEmpty() +
+                    ", container: " + containerRows.isEmpty() + ", io: " + ioRows.isEmpty());
             return;
         }
 
         String[] globalHeader = globalRows.get(0);
         String[] containerHeader = containerRows.get(0);
+        String[] ioHeader = ioRows.get(0);
 
         List<String> outputLines = new ArrayList<>();
 
         // Combined header
         List<String> combinedHeader = new ArrayList<>();
         combinedHeader.add("Time");
+
+        // Add container headers (network)
         for (int i = 1; i < containerHeader.length; i++) {
             combinedHeader.add(containerHeader[i]);
         }
+
+        // Add global headers (memory, cpu)
         for (int i = 1; i < globalHeader.length; i++) {
             combinedHeader.add(globalHeader[i]);
         }
 
+        // Add IO headers
+        for (int i = 1; i < ioHeader.length; i++) {
+            combinedHeader.add(ioHeader[i]);
+        }
+
         List<String> orderedHeader = buildOrderedHeader(combinedHeader);
         outputLines.add(String.join(",", orderedHeader));
+        logger.info("Final Output Headers: " + orderedHeader);
 
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+
         for (int i = 1; i < containerRows.size(); i++) {
             String[] containerRow = containerRows.get(i);
 
@@ -293,12 +377,25 @@ public class MonitorMetricsProcessor {
             LocalDateTime containerTime = LocalDateTime.parse(containerTimeStr, fmt);
 
             // Find nearest memory and cpu entry within 0.5sec tolerance
-            String[] nearestGlobal = findNearest(containerTime, globalRows, fmt, 500); // 0.5s
-            globalRows.remove(nearestGlobal);
-
+            String[] nearestGlobal = findNearest(containerTime, globalRows, fmt, 500);
             if (nearestGlobal != null) {
+                globalRows.remove(nearestGlobal);
+            }
+
+            // Find nearest IO entry within 0.5sec tolerance
+            String[] nearestIO = findNearest(containerTime, ioRows, fmt, 500);
+            if (nearestIO != null) {
+                ioRows.remove(nearestIO);
+            }
+
+            if (nearestGlobal != null && nearestIO != null) {
                 List<String> mergedRow = new ArrayList<>(Arrays.asList(containerRow));
+
+                // Add global metrics (skip Time column)
                 mergedRow.addAll(Arrays.asList(nearestGlobal).subList(1, nearestGlobal.length));
+
+                // Add IO metrics (skip Time column)
+                mergedRow.addAll(Arrays.asList(nearestIO).subList(1, nearestIO.length));
 
                 // Quote Time
                 mergedRow.set(0, "\"" + mergedRow.get(0).replace("\"", "") + "\"");
@@ -310,6 +407,7 @@ public class MonitorMetricsProcessor {
 
         try {
             Files.write(Paths.get(outputFile), outputLines);
+            logger.info("Successfully wrote merged metrics to: " + outputFile);
         } catch (IOException e) {
             logger.error("Error writing joined metrics to file: " + outputFile, e);
         }

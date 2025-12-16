@@ -1,10 +1,13 @@
 package pt.haslab.mulletbench;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,30 +33,30 @@ public class MonitoringController {
     }
 
     private Process monitor(String containerName, String outputFileName, String address) {
-        String[] nodeCommand = new String[]{
-            "pmrep",
-            "-t",
-            monitoringInterval,
-            "-b",
-            "MBytes",
-            "-I",
-            "--container",
-            containerName,
-            "network.interface.in.bytes",
-            "network.interface.out.bytes",
-            "cgroup.memory.usage",
-            "cgroup.cpuacct.stat.system",
-            "cgroup.cpuacct.stat.user",
-            "cgroup.blkio.all.throttle.io_service_bytes.read",
-            "cgroup.blkio.all.throttle.io_service_bytes.write",
-            "-o",
-            "csv",
-            "-f",
-            "\"%Y-%m-%d %H:%M:%S.%f\"",
-            "-F",
-            resultsFolder + "/" + "monitor-" + outputFileName,
-            "-h",
-            address,};
+        String[] nodeCommand = new String[] {
+                "pmrep",
+                "-t",
+                monitoringInterval,
+                "-b",
+                "MBytes",
+                "-I",
+                "--container",
+                containerName,
+                "network.interface.in.bytes",
+                "network.interface.out.bytes",
+                "cgroup.memory.usage",
+                "cgroup.cpuacct.stat.system",
+                "cgroup.cpuacct.stat.user",
+                "cgroup.blkio.all.throttle.io_service_bytes.read",
+                "cgroup.blkio.all.throttle.io_service_bytes.write",
+                "-o",
+                "csv",
+                "-f",
+                "\"%Y-%m-%d %H:%M:%S.%f\"",
+                "-F",
+                resultsFolder + "/" + "monitor-" + outputFileName,
+                "-h",
+                address, };
         try {
             Process p = Runtime.getRuntime().exec(nodeCommand);
             logger.debug(p.info().toString());
@@ -75,50 +78,119 @@ public class MonitoringController {
 
         String globalOutput = path + "/global-" + outputFilename;
         String containerOutput = path + "/container-" + outputFilename;
+        String ioOutput = path + "/io-" + outputFilename;
 
-        // Global metrics
-        String[] globalCmd = new String[]{
-            "pmrep", "-t", monitoringInterval, "-b", "MBytes",
-            "-I", "cgroup.memory.current", "cgroup.memory.stat.inactive_file",
-            "cgroup.cpu.stat.user", "cgroup.cpu.stat.system",
-            "cgroup.io.stat.rbytes", "cgroup.io.stat.wbytes",
-            "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
-            "-F", globalOutput, "-h", address
+        // Container network metrics
+        String[] containerCmd = new String[] {
+                "pmrep", "-t", monitoringInterval, "-b", "MBytes",
+                "-I", "--container", containerName,
+                "network.interface.in.bytes", "network.interface.out.bytes",
+                "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
+                "-F", containerOutput, "-h", address
         };
 
-        // Container metrics
-        String[] containerCmd = new String[]{
-            "pmrep", "-t", monitoringInterval, "-b", "MBytes",
-            "-I", "--container", containerName,
-            "network.interface.in.bytes", "network.interface.out.bytes",
-            "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
-            "-F", containerOutput, "-h", address
+        String[] globalCmd = new String[] {
+                "pmrep", "-t", monitoringInterval, "-b", "MBytes",
+                "-I", "cgroup.memory.current", "cgroup.memory.stat.inactive_file",
+                "cgroup.cpu.stat.user", "cgroup.cpu.stat.system",
+                "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
+                "-F", globalOutput, "-h", address
+        };
+
+        String[] ioCmd = new String[] {
+                "pmrep", "-t", monitoringInterval, "-b", "MBytes",
+                "-I", "cgroup.io.stat.rbytes", "cgroup.io.stat.wbytes",
+                "-o", "csv", "-f", "\"%Y-%m-%d %H:%M:%S.%f\"",
+                "-F", ioOutput, "-h", address
         };
 
         try {
             Process globalProcess = Runtime.getRuntime().exec(globalCmd);
             Process containerProcess = Runtime.getRuntime().exec(containerCmd);
+            Process ioProcess = Runtime.getRuntime().exec(ioCmd);
 
-            logger.debug(globalProcess.info().toString());
-            logger.debug(containerProcess.info().toString());
+            logProcessErrors(globalProcess, "GLOBAL-" + containerID);
+            logProcessErrors(containerProcess, "CONTAINER-" + containerID);
+            logProcessErrors(ioProcess, "IO-" + containerID);
+
+            logger.info(globalProcess.info().toString());
+            logger.info(containerProcess.info().toString());
+            logger.info(ioProcess.info().toString());
             logger.info("Started monitoring: " + containerName + " (" + containerID + ")");
-            return new Process[]{globalProcess, containerProcess};
+            return new Process[] { globalProcess, containerProcess, ioProcess };
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void monitorDatabase(String containerName, String containerID, String cgroupsVersion, String outputFileName, String address) {
+    private void logProcessErrors(Process process, String identifier) {
+        new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logger.error("[" + identifier + "] " + line);
+                }
+            } catch (IOException e) {
+                logger.error("Error reading stderr for " + identifier, e);
+            }
+        }).start();
+    }
+
+    private void warmupPcpMetrics(String address) {
+        logger.info("Warming up PCP metrics discovery for " + address);
+        try {
+            // Run multiple warmup queries to trigger full metric discovery
+            // This forces PCP to enumerate all cgroups before we start actual monitoring
+            String[][] warmupCommands = new String[][] {
+                    new String[] { "pmrep", "-t", "1sec", "-s", "3", "-h", address,
+                            "cgroup.memory.current", "cgroup.cpu.stat.system",
+                            "cgroup.cpu.stat.user" },
+                    new String[] { "pmrep", "-t", "1sec", "-s", "3", "-h", address,
+                            "cgroup.io.stat.rbytes", "cgroup.io.stat.wbytes" },
+                    new String[] { "pmrep", "-t", "1sec", "-s", "2", "-h", address,
+                            "cgroup.memory.current", "cgroup.cpu.stat.system",
+                            "cgroup.cpu.stat.user", "cgroup.io.stat.rbytes",
+                            "cgroup.io.stat.wbytes" }
+            };
+
+            for (int i = 0; i < 5; i++) {
+                logger.info("PCP warmup iteration " + (i + 1) + "/5 for " + address);
+                for (String[] cmd : warmupCommands) {
+                    Process p = Runtime.getRuntime().exec(cmd);
+                    boolean finished = p.waitFor(10, TimeUnit.SECONDS);
+                    if (!finished) {
+                        logger.warn("Warmup command timed out, destroying process");
+                        p.destroy();
+                    } else {
+                        logger.debug("Warmup command completed with exit code: " + p.exitValue());
+                    }
+                }
+            }
+            logger.info("PCP warmup completed for " + address);
+        } catch (IOException | InterruptedException e) {
+            logger.warn("Failed to warmup PCP metrics for " + address, e);
+        }
+    }
+
+    public void monitorDatabase(String containerName, String containerID, String cgroupsVersion, String outputFileName,
+            String address) {
         if (cgroupsVersion.equals("v2")) {
+            // CRITICAL: Warmup PCP before starting monitoring
+            warmupPcpMetrics(address);
             v2DatabaseMonitorProcesses.add(monitor(containerName, containerID, outputFileName, address));
         } else {
             v1DatabaseMonitorProcesses.add(monitor(containerName, outputFileName, address));
         }
     }
 
-    public void monitorClient(String clientName, String containerID, String cgroupsVersion, String outputFileName, String address) {
+    public void monitorClient(String clientName, String containerID, String cgroupsVersion, String outputFileName,
+            String address) {
         if (cgroupsVersion.equals("v2")) {
-            v2ClientMonitorProcesses.add(monitor(clientContainerBase + clientName, containerID, outputFileName, address));
+            // CRITICAL: Warmup PCP before starting monitoring
+            warmupPcpMetrics(address);
+            v2ClientMonitorProcesses
+                    .add(monitor(clientContainerBase + clientName, containerID, outputFileName, address));
         } else {
             v1ClientMonitorProcesses.add(monitor(clientContainerBase + clientName, outputFileName, address));
         }

@@ -15,13 +15,16 @@
 
 - name: Install pip for all hosts
   hosts: all
-  become: true
   tasks:
     - name: Install the latest version of pip
+      become: true
       ansible.builtin.apt:
         name:
           - python3-pip
         state: latest # This ensures the latest available version is installed
+
+    - name: Upgrade pip to the latest version
+      ansible.builtin.command: python3 -m pip install --upgrade pip
 
 - name: Fix Python3.11 externally managed
   hosts: all
@@ -53,43 +56,42 @@
         - py3_version is defined
         - py3_version is ansible.builtin.version_compare('3.11', '>=')
 
-- name: Install docker and docker compose for all hosts
-  hosts: all:localhost
-  become: true
-  throttle: 1
-  tasks:
-    - name: Fix pkg_resources is deprecated as an api
-      command: python3 -m pip install --ignore-installed setuptools==65.6.3
-    - name: Downgrade websocket-client to avoid docker-compose issues
-      command: python3 -m pip install --ignore-installed websocket-client==0.59.0
-    - name: Install more_itertools module
-      command: python3 -m pip install --ignore-installed more_itertools
-    - name: Install docker python modules
-      command: python3 -m pip install --ignore-installed PyYAML==5.3.1 docker==6.1.3 docker-compose==1.29.2
-
-# - name: Install docker for all hosts
+# - name: Install docker and docker compose for all hosts
 #   hosts: all:localhost
-#   become: true
-#   vars:
-#     docker_packages:
-#       - "docker-{{ docker_edition }}"
-#       - "docker-{{ docker_edition }}-cli"
-#       - "docker-{{ docker_edition }}-rootless-extras"
-#     docker_packages_state: present
-#     pip_install_packages:
-#       - name: cryptography
-#         version: "3.4"
-#       # - name: docker
-#       #   version: "6.1.3"
-#       # - name: docker-compose
-#       #   version: "1.29.2"
-#     docker_users:
-#       - "{{ ansible_user }}"
-#   roles:
-#     - role: geerlingguy.pip # install docker python library
-#       become: true
-#     - role: geerlingguy.docker # install docker
-#       become: true
+#   throttle: 1
+#   tasks:
+#     - name: Fix pkg_resources is deprecated as an api
+#       command: python3 -m pip install --ignore-installed setuptools==65.6.3
+#     - name: Downgrade websocket-client to avoid docker-compose issues
+#       command: python3 -m pip install --ignore-installed websocket-client==0.59.0
+#     - name: Install more_itertools module
+#       command: python3 -m pip install --ignore-installed more_itertools
+#     - name: Install docker python modules
+#       command: python3 -m pip install --ignore-installed PyYAML==5.3.1 docker==6.1.3 docker-compose==1.29.2
+
+- name: Install docker for all hosts
+  hosts: all:localhost
+  throttle: 1
+  vars:
+    docker_packages:
+      - "docker-{{ docker_edition }}"
+      - "docker-{{ docker_edition }}-cli"
+      - "docker-{{ docker_edition }}-rootless-extras"
+      - "docker-compose-plugin"
+    docker_packages_state: present
+    pip_install_packages:
+      - name: cryptography
+        version: "3.4"
+      - name: docker
+        version: "6.1.3"
+      - name: docker-compose
+        version: "1.29.2"
+    docker_users:
+      - "{{ ansible_user }}"
+  roles:
+    - role: geerlingguy.pip # install docker python library
+    - role: geerlingguy.docker # install docker
+      become: true
 
 - name: Install database for all hosts
   hosts:
