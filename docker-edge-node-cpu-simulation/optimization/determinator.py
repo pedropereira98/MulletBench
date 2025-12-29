@@ -6,7 +6,7 @@ from ansible_runner.executor import execute_test_run
 from optimization.compare import compare_results
 from optimization.adjust_cpu import calculate_next_value_cpu, append_cpu_history
 from optimization.adjust_disk_io import calculate_next_value_disk_io, multiply_disk_io, append_disk_io_history
-from optimization.adjust_alternate import calculate_next_value_alternate, append_alternate_history
+from optimization.adjust_alternate import axis_to_values, calculate_axis, calculate_next_value_alternate, append_alternate_history
 import json
 
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
@@ -36,10 +36,17 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
         print(f"\tValue of difference: {comparation}")
 
         if  abs(comparation) < config.STOP_THRESHOLD:
-            print(f"Optimal value for resources is:\n{current_config_str}")
-            optimal = True
-            append_alternate_history(cpu_value, io_multiplier, bias, comparation)
-            break
+            if io_multiplier >= 0.95:
+                print(f"Optimal value for resources found: \n{current_config_str}\n, but disk isn't adjusted. Exploring further configurations..")
+                
+                # bias towards CPU -> get lower disk values
+                bias = 2
+                cpu_value, io_multiplier = axis_to_values(calculate_axis(cpu_value, io_multiplier), (cpu_value, io_multiplier), bias)
+            else:
+                print(f"Optimal value for resources is:\n{current_config_str}")
+                optimal = True
+                append_alternate_history(cpu_value, io_multiplier, bias, comparation)
+                break
         else:
             results.append({
                 "cpu": cpu_value,
@@ -47,17 +54,7 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
                 "diff": comparation
             })
 
-        # if last == "disk":
-        #     cpu_value = calculate_next_value_cpu(cpu_value, reference_results, run_results, loaded_config['type'])
-        #     last = "cpu"
-        # else:
-        #     io_limits = calculate_next_value_disk_io(io_limits, config.INITIAL_DISK_IO, reference_results, run_results, loaded_config['type'])
-        #     disk_adjusts += 1
-        #     for key, value in io_limits.items():
-        #         server[f'limited_resources_{key}'] = value
-        #     last = "disk"
-
-        cpu_value, io_multiplier, bias = calculate_next_value_alternate(cpu_value, io_multiplier, bias, last=="disk", reference_results, run_results, loaded_config["type"])
+            cpu_value, io_multiplier, bias = calculate_next_value_alternate(cpu_value, io_multiplier, bias, last=="disk", reference_results, run_results, loaded_config["type"])
         
         last = last == "disk" and "cpu" or "disk"
         
