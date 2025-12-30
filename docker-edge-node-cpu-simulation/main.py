@@ -52,9 +52,12 @@ def main():
         df = monitor_df_from_path(args.monitor_file_path)
         server['limited_resources_mem'] = int(df['RAM'].max())
 
-    if args.initial_value is not None:
-        config.INITIAL_VALUE = float(args.initial_value)
-        server['limited_resources_cpu'] = config.INITIAL_VALUE
+    if args.initial_cpu_value is not None:
+        config.INITIAL_CPU_VALUE = float(args.initial_cpu_value)
+        server['limited_resources_cpu'] = config.INITIAL_CPU_VALUE
+        
+    if args.initial_disk_multiplier is not None:
+        config.INITIAL_DISK_MULTIPLIER = float(args.initial_disk_multiplier)
 
     if args.disk_io_limits is not None:
         io_limits = parse_disk_io_limts(args.disk_io_limits)

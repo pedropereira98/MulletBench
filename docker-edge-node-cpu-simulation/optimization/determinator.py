@@ -11,14 +11,11 @@ import json
 
 def run_determination_test_alternate(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[float, dict]:
     num_runs = 0
-    cpu_value = config.INITIAL_VALUE
+    cpu_value = config.INITIAL_CPU_VALUE
+    io_multiplier = config.INITIAL_DISK_MULTIPLIER
     optimal = False
     last = "disk"
-    if args.initial_value is not None:
-        cpu_value = float(args.initial_value)
-
     results = []
-    io_multiplier = 1.0
     bias = 0
 
     while num_runs < config.MAX_RUNS:
@@ -74,11 +71,8 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
 
 def run_determination_test_cpu(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict, calculate_disk_io: bool = False) -> tuple[float, dict]:
     num_runs = 0
-    cpu_value = config.INITIAL_VALUE
+    cpu_value = config.INITIAL_CPU_VALUE
     optimal = False
-    if args.initial_value is not None:
-        cpu_value = float(args.initial_value)
-
     results = []
 
     while num_runs < config.MAX_RUNS:
@@ -134,7 +128,7 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
 
     num_runs = 0
     optimal = False
-    io_multiplier = 1.0
+    io_multiplier = config.INITIAL_DISK_MULTIPLIER
 
     results = []
 
