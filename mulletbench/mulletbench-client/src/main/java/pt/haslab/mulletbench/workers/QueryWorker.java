@@ -98,7 +98,9 @@ public abstract class QueryWorker extends Worker {
         }
 
         logger.info("Finished queries");
-        queryDumper.close();
+        
+        if (dumpQueries)
+            queryDumper.close();
     }
 
     public QueryWorker(DatabaseConnector connector, Stats stats, String clientId, int workerNumber, float rate, int count, boolean dumpQueries) throws FileNotFoundException {

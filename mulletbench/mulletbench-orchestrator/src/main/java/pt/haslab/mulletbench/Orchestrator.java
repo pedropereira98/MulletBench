@@ -295,6 +295,7 @@ public class Orchestrator {
                 throw new RuntimeException("Client connection failed", e);
             }
         }
+        
 
         if (receivedClients < clients.size()) {
             throw new RuntimeException("Only received " + receivedClients + " out of " + clients.size() + " clients");
