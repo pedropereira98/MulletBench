@@ -20,6 +20,8 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
 
     while num_runs < config.MAX_RUNS:
 
+        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
+        
         current_config_str = json.dumps({"cpu_limit": cpu_value, "io_limits": io_limits}, indent=4)
         print(f"\n\n\n\nTest Run with {current_config_str}\n")
 
@@ -55,8 +57,6 @@ def run_determination_test_alternate(args, loaded_config: dict, server: dict, re
         
         last = last == "disk" and "cpu" or "disk"
         
-        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
-
         num_runs += 1
         
     if not optimal:
@@ -133,6 +133,8 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
     results = []
 
     while num_runs < config.MAX_RUNS:
+        
+        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
 
         print(f"\n\n\n\nTest Run with {io_limits = }\n")
 
@@ -158,7 +160,6 @@ def run_determination_test_disk_io(args, loaded_config: dict, server: dict, refe
 
         io_multiplier = calculate_next_value_disk_io(io_multiplier, reference_results, run_results, loaded_config['type'])
 
-        io_limits = multiply_disk_io(config.INITIAL_DISK_IO, io_multiplier)
 
         num_runs += 1
 
