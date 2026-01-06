@@ -1,5 +1,4 @@
 ---
-
 - name: Set default port if not defined
   ansible.builtin.set_fact:
     iotdb_port: 6667
@@ -9,14 +8,14 @@
   ansible.builtin.file:
     path: /tmp/iotdb
     state: directory
-    mode: '777'
+    mode: "777"
   become: true
 
 - name: Ensure /tmp/iotdb/{{ inventory_hostname }} dir exists
   ansible.builtin.file:
     path: /tmp/iotdb/{{ inventory_hostname }}
     state: directory
-    mode: '777'
+    mode: "777"
   become: true
 
 - name: Set max number of connection requests queued
@@ -36,7 +35,7 @@
   ansible.builtin.template:
     src: templates/iotdb-compose.yaml.j2
     dest: /tmp/iotdb/{{ inventory_hostname }}/compose.yaml
-    mode: '0500'
+    mode: "0500"
 
 - name: Launch Apache IoTDB instance
   community.docker.docker_compose_v2:
@@ -54,6 +53,37 @@
 - name: Check if IoTDB is ready
   debug:
     msg: "{{ 'IoTDB is ready' if wait_result.state == 'started' else 'IoTDB is not ready' }}"
+
+- name: Set timestamp_precision to ns if iotdb_version >= 1.2
+  block:
+    - name: Stop IoTDB container
+      community.docker.docker_container:
+        name: iotdb-{{ inventory_hostname }}
+        state: stopped
+
+    - name: Read current timestamp_precision from ConfigNode metadata
+      ansible.builtin.shell: |
+        grep '^timestamp_precision=' \
+        /home/iotdb/{{ inventory_hostname }}/data/confignode/system/confignode-system.properties \
+        | cut -d'=' -f2
+      register: current_precision
+      changed_when: false
+      failed_when: false
+
+    - name: Update timestamp_precision to ns if needed
+      ansible.builtin.replace:
+        path: /home/iotdb/{{ inventory_hostname }}/data/confignode/system/confignode-system.properties
+        regexp: "^timestamp_precision=.*"
+        replace: "timestamp_precision=ns"
+      when: current_precision.stdout != "ns"
+
+    - name: Start IoTDB container
+      community.docker.docker_container:
+        name: iotdb-{{ inventory_hostname }}
+        state: started
+
+  when:
+    - iotdb_version is ansible.builtin.version_compare('1.2', '>=')
 
 # - name: Check current timestamp_precision in IoTDB
 #   community.docker.docker_container_exec:
@@ -79,11 +109,10 @@
 - name: Set retention period
   community.docker.docker_container_exec:
     container: iotdb-{{ inventory_hostname }}
-    command: "/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e \"set ttl TO {{ iotdb_device_path }} {{ max_retention }}\""
+    command: '/iotdb/sbin/start-cli.sh -h iotdb-{{ inventory_hostname }} -e "set ttl TO {{ iotdb_device_path }} {{ max_retention }}"'
   register: set_retention_period
   failed_when: "set_retention_period.rc != 0"
   when: max_retention is defined
-
 # - name: Restart container (fixes broken resource monitoring)
 #   community.docker.docker_compose_v2:
 #     project_src: /tmp/iotdb/{{ inventory_hostname }}/
