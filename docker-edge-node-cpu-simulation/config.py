@@ -4,7 +4,7 @@ class Config:
 
     def __init__(self):
 
-        self.ANSIBLE_PATH = "~/MulletBench/ansible" # Path to the Ansible playbook directory
+        self.ANSIBLE_PATH = "../ansible" # Path to the Ansible playbook directory
         self.OUTPUT_PATH = "outputs/" # Path to the output directory where results will be stored
 
         self.COOLDOWN_PERIOD = 300
