@@ -4,6 +4,7 @@ import subprocess
 import yaml
 import os
 import shutil
+import time
 
 def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict, cpu_value: float , io_limits: dict = {}, io_multiplier: float = -1.0) ->  str:
     """ Execute a test run with the given configuration and server settings.
@@ -59,5 +60,8 @@ def execute_test_run(test_config: dict, config_type: WorkloadType, server: dict,
 
         print("-- Orchestrator Logs --")
         os.system(f"docker logs --follow mulletbench-orchestrator  | tee {os.path.join(output_dir, run)}")
+        
+        print("-- Cooldown pause (5 minutes) --")
+        time.sleep(config.COOLDOWN_PERIOD)
 
     return test_name

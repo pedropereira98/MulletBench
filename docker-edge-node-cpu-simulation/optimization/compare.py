@@ -26,6 +26,12 @@ def compare(reference_results: list[str], adjusted_results: list[str], key: str)
     """
     return (adjusted_results[key][0] / reference_results[key][0]) - 1
 
+def weighted_diff(diffs: list[float], weights: list[float]) -> float:
+    total_weight = sum(weights)
+    if total_weight == 0:
+        return 0.0
+    return sum(d * w for d, w in zip(diffs, weights)) / total_weight
+
 
 def compare_results(reference_results: list[str], adjusted_results: list[str], config_type = WorkloadType.INSERTION) -> float:
     """ Compare the adjusted results with the reference results to determine the difference in performance.
@@ -73,10 +79,10 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         if not -margin < failed_query_diff < margin:
             diff = failed_query_diff / total_queries
         else:
-            diff_rate = compare(ref_edge_stats, adj_edge_stats, QUERY_RATE)
+            # diff_rate = compare(ref_edge_stats, adj_edge_stats, QUERY_RATE)
             diff_latency = compare(adj_edge_stats[QUERY_LATENCY_BREAKDOWN], ref_edge_stats[QUERY_LATENCY_BREAKDOWN], QUERY_LATENCY)
-            diff = (diff_rate + diff_latency) * 0.5
-            # diff = diff_rate
+            # diff = (diff_rate + diff_latency) * 0.5
+            diff = diff_latency
     else: # MIXED workload
         ref_query_stats = ref_edge_stats["Query stats"]
         adj_query_stats = adj_edge_stats["Query stats"]
@@ -110,15 +116,27 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
         elif diff_failed_insert is not None:
             diff = diff_failed_insert
         else:
+            ref_insert_latency = ref_edge_stats[INSERT_LATENCY][0]
+            adj_insert_latency = adj_edge_stats[INSERT_LATENCY][0]
+            ref_query_latency = ref_query_stats[QUERY_LATENCY_BREAKDOWN][QUERY_LATENCY][0]
+            adj_query_latency = adj_query_stats[QUERY_LATENCY_BREAKDOWN][QUERY_LATENCY][0]
+
             diff_insert_rate = compare(ref_edge_stats, adj_edge_stats, INSERT_RATE)
             diff_insert_latency = compare(adj_edge_stats, ref_edge_stats, INSERT_LATENCY)
-            diff_query_rate = compare(ref_query_stats, adj_query_stats, QUERY_RATE)
-            diff_query_latency = compare(adj_query_stats[QUERY_LATENCY_BREAKDOWN], ref_query_stats[QUERY_LATENCY_BREAKDOWN], QUERY_LATENCY)
+            diff_insert = (diff_insert_rate * 0.7 + diff_insert_latency * 0.3)
 
-            diff_insert = (diff_insert_rate + diff_insert_latency) / 2
-            # diff_query = (diff_query_rate + diff_query_latency) / 2
+            # Query diff
+            diff_query_latency = compare(
+                adj_query_stats[QUERY_LATENCY_BREAKDOWN],
+                ref_query_stats[QUERY_LATENCY_BREAKDOWN],
+                QUERY_LATENCY
+            )
             diff_query = diff_query_latency
 
-            diff = (diff_insert + diff_query) / 2
+            # Weight by reference magnitude
+            diff = weighted_diff(
+                diffs=[diff_insert, diff_query],
+                weights=[abs(ref_insert_latency-adj_insert_latency), abs(ref_query_latency-adj_query_latency)]
+            )
 
     return round(diff, config.MAX_DECIMAL_PLACES)

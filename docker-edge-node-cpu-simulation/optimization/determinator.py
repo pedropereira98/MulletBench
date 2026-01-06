@@ -86,7 +86,7 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
 
         comparation = compare_results(reference_results, run_results, loaded_config['type'])
 
-        print(f"\tValue of difference: {comparation}")
+        print(f"\n\tValue of difference: {comparation}")
 
         if  abs(comparation) < config.STOP_THRESHOLD:
             print(f"Optimal value for CPU is {cpu_value}")

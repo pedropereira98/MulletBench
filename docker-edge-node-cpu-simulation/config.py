@@ -7,6 +7,7 @@ class Config:
         self.ANSIBLE_PATH = "~/MulletBench/ansible" # Path to the Ansible playbook directory
         self.OUTPUT_PATH = "outputs/" # Path to the output directory where results will be stored
 
+        self.COOLDOWN_PERIOD = 300
         self.RUNS_PER_ADJUST = 3
         self.MAX_RUNS = 10
         self.STOP_THRESHOLD = 0.02
