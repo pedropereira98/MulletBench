@@ -71,6 +71,7 @@
       failed_when: false
 
     - name: Update timestamp_precision to ns if needed
+      become: true
       ansible.builtin.replace:
         path: /home/iotdb/{{ inventory_hostname }}/data/confignode/system/confignode-system.properties
         regexp: "^timestamp_precision=.*"
