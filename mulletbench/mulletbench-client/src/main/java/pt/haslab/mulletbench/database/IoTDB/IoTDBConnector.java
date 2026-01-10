@@ -1,14 +1,12 @@
 package pt.haslab.mulletbench.database.IoTDB;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.iotdb.isession.SessionDataSet;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.Session;
-import org.apache.iotdb.tsfile.read.common.RowRecord;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import pt.haslab.mulletbench.database.DatabaseConnectionFailedException;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
+import pt.haslab.mulletbench.queries.queryResult.IoTDBQueryResult;
 import pt.haslab.mulletbench.utils.InsertionOptions;
 import pt.haslab.mulletbench.utils.IoTDBOptions;
 
@@ -39,7 +38,7 @@ public class IoTDBConnector implements DatabaseConnector {
     }
 
     @Override
-    public List<String> query(String query) throws FailedQueryException {
+    public IoTDBQueryResult query(String query) throws FailedQueryException {
         SessionDataSet resultSet;
 
         try{
@@ -52,22 +51,7 @@ public class IoTDBConnector implements DatabaseConnector {
             throw new FailedQueryException(e.getMessage());
         }
 
-        List<String> results = new LinkedList<>();
-        try{
-            if(resultSet != null){
-                while(resultSet.hasNext()){
-                    RowRecord record = resultSet.next();
-                    logger.trace(record.toString());
-                    results.add(record.toString());
-                }
-            }
-        } catch (IoTDBConnectionException e){
-            logger.error("Connection error iterating results", e);
-        } catch (StatementExecutionException e){
-            logger.error("Execution error iterating results", e);
-        }
-
-        return results;
+        return new IoTDBQueryResult(resultSet);
     }
 
     private void insertTablet(Tablet tablet) throws StatementExecutionException{

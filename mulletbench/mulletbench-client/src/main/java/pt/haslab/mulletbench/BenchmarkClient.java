@@ -7,7 +7,6 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,6 +31,7 @@ import pt.haslab.mulletbench.queries.queryGenerators.datasetProcessors.FloatsDat
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.CurrentTimeController;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.DatasetTimeController;
 import pt.haslab.mulletbench.queries.queryGenerators.timeController.TimeController;
+import pt.haslab.mulletbench.queries.queryResult.QueryResult;
 import pt.haslab.mulletbench.stats.StatsCollector;
 import pt.haslab.mulletbench.utils.ClientOptions;
 import pt.haslab.mulletbench.workers.InsertionWorker;
@@ -94,49 +94,56 @@ public class BenchmarkClient {
     }
 
     private String findContainerID() {
-    try {
-        // Attempt to read from cgroup info
-        List<String> lines = Files.readAllLines(Paths.get("/proc/self/cgroup"));
-        for (String line : lines) {
-            if (line.contains("docker")) {
-                String[] parts = line.split("/");
-                String candidate = parts[parts.length - 1];
-                if (!candidate.isEmpty()) {
-                    // Return full container ID from cgroup
-                    return candidate;
+        try {
+            // Attempt to read from cgroup info
+            List<String> lines = Files.readAllLines(Paths.get("/proc/self/cgroup"));
+            for (String line : lines) {
+                if (line.contains("docker")) {
+                    String[] parts = line.split("/");
+                    String candidate = parts[parts.length - 1];
+                    if (!candidate.isEmpty()) {
+                        // Return full container ID from cgroup
+                        return candidate;
+                    }
                 }
             }
-        }
 
-        // Fallback: hostname (short ID)
-        String hostname = java.net.InetAddress.getLocalHost().getHostName();
-        if (hostname != null && !hostname.isEmpty()) {
-            return hostname.length() > 12 ? hostname.substring(0, 12) : hostname;
+            // Fallback: hostname (short ID)
+            String hostname = java.net.InetAddress.getLocalHost().getHostName();
+            if (hostname != null && !hostname.isEmpty()) {
+                return hostname.length() > 12 ? hostname.substring(0, 12) : hostname;
+            }
+        } catch (IOException e) {
+            logger.error("Failed to determine container ID", e);
         }
-    } catch (IOException e) {
-        logger.error("Failed to determine container ID", e);
+        return null;
     }
-    return null;
-}
 
     private void connect() throws IOException {
-        this.orchestratorSocket = new Socket(InetAddress.getByName(options.orchestratorAddress), options.orchestratorPort);
-        logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " " + orchestratorSocket.getPort());
+        this.orchestratorSocket = new Socket(InetAddress.getByName(options.orchestratorAddress),
+                options.orchestratorPort);
+        logger.debug("Connected to orchestrator " + orchestratorSocket.getInetAddress().toString() + " "
+                + orchestratorSocket.getPort());
 
-        this.objOut = new ObjectOutputStream(new BufferedOutputStream(orchestratorSocket.getOutputStream())); // better for larger writes
+        this.objOut = new ObjectOutputStream(new BufferedOutputStream(orchestratorSocket.getOutputStream())); // better
+                                                                                                              // for
+                                                                                                              // larger
+                                                                                                              // writes
         String containerID = this.findContainerID();
         if (containerID == null) {
             containerID = "N/A";
         }
         String cgroupsVersion = this.findCgroupsVersion();
 
-        this.objOut.writeObject(options.clientId + ";" + options.clientAddress + ";" + containerID + ";" + cgroupsVersion);
+        this.objOut
+                .writeObject(options.clientId + ";" + options.clientAddress + ";" + containerID + ";" + cgroupsVersion);
         this.objOut.flush();
         this.objIn = new ObjectInputStream(orchestratorSocket.getInputStream());
         logger.debug("Wrote object with " + options.clientId);
     }
 
-    public void insertionWorkload() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException, InterruptedException {
+    public void insertionWorkload() throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException,
+            InstantiationException, IllegalAccessException, IOException, InterruptedException {
         logger.info("Starting insertion workload");
 
         Thread[] threadList = new Thread[options.numWorkers];
@@ -157,9 +164,11 @@ public class BenchmarkClient {
                     databaseConnector = databaseConnectorFactory.getInstance();
                 }
                 if (options.sharedDataset) {
-                    threadList[i] = new Thread(new InsertionWorker(databaseConnector, options, statsCollector.getStats(i), i, options.currentTime, sharedDataset));
+                    threadList[i] = new Thread(new InsertionWorker(databaseConnector, options,
+                            statsCollector.getStats(i), i, options.currentTime, sharedDataset));
                 } else {
-                    threadList[i] = new Thread(new InsertionWorker(databaseConnector, options, statsCollector.getStats(i), i, options.currentTime));
+                    threadList[i] = new Thread(new InsertionWorker(databaseConnector, options,
+                            statsCollector.getStats(i), i, options.currentTime));
                 }
             }
 
@@ -198,7 +207,7 @@ public class BenchmarkClient {
             long nanoTs = Long.parseLong(timestamp);
             Instant instant = Instant.ofEpochSecond(nanoTs / 1_000_000_000L, nanoTs % 1_000_000_000L);
             return instant;
-        } 
+        }
 
         String[] parts = value.split(" ");
 
@@ -216,15 +225,16 @@ public class BenchmarkClient {
     private Instant[] getQueryRange(DatabaseConnector databaseConnector, DatasetProcessor datasetProcessor) {
         Instant[] range = new Instant[2];
         if (options.currentTime)
-            return new Instant[]{Instant.now(), Instant.now()};
+            return new Instant[] { Instant.now(), Instant.now() };
 
-        QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, new CurrentTimeController(), (FloatsDatasetProcessor) datasetProcessor);
+        QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options,
+                new CurrentTimeController(), (FloatsDatasetProcessor) datasetProcessor);
 
         Query firstRecordQuery = queryGenerator.getFirstRecordQuery();
         Query lastRecordQuery = queryGenerator.getLastRecordQuery();
 
-        List<String> firstRecordResult = null;
-        List<String> lastRecordResult = null;
+        QueryResult firstRecordResult = null;
+        QueryResult lastRecordResult = null;
 
         try {
             firstRecordResult = databaseConnector.query(firstRecordQuery.queryString());
@@ -234,25 +244,33 @@ public class BenchmarkClient {
             return null;
         }
 
-        if (firstRecordResult.isEmpty() || lastRecordResult.isEmpty()) {
+        if (firstRecordResult == null || lastRecordResult == null) {
+            logger.error("Failed to get start and end range for dataset.");
+            return null;
+        }
+
+        List<String> firstRecordResultStrings = firstRecordResult.getResultStrings();
+        List<String> lastRecordResultStrings = lastRecordResult.getResultStrings();
+
+        if (firstRecordResultStrings.isEmpty() || lastRecordResultStrings.isEmpty()) {
             logger.error("No results found for first or last record queries. Aborting");
             return null;
         }
 
-        
-        String firstRecord = firstRecordResult.get(0);
-        String lastRecord = lastRecordResult.get(0);
+        String firstRecord = firstRecordResultStrings.get(0);
+        String lastRecord = lastRecordResultStrings.get(0);
 
         logger.debug("First record: " + firstRecord);
         logger.debug("Last record: " + lastRecord);
 
         range[0] = parseQueryResult(firstRecord);
         range[1] = parseQueryResult(lastRecord);
-        
+
         return range;
     }
 
-    public void queryWorkload() throws DatabaseConnectionFailedException, ClassNotFoundException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    public void queryWorkload() throws DatabaseConnectionFailedException, ClassNotFoundException,
+            InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         logger.info("Starting query workload");
         TimeController tc;
         if (options.currentTime) {
@@ -264,7 +282,8 @@ public class BenchmarkClient {
         DatasetProcessor datasetProcessor;
         try {
             datasetProcessor = DatasetProcessor.getInstance(options.dataset, tc);
-        } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+        } catch (ClassNotFoundException | InvocationTargetException | InstantiationException | IllegalAccessException
+                | NoSuchMethodException e) {
             throw new RuntimeException(e);
         }
 
@@ -300,16 +319,20 @@ public class BenchmarkClient {
 
                 // Generate queries before executing worker
                 if (options.currentTime) {
-                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
+                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options),
+                            options, tc, (FloatsDatasetProcessor) datasetProcessor);
                     statsCollector.setQuerySeed(queryGenerator.getCurrentSeed());
                     queryGenerator.setStart(System.currentTimeMillis());
-                    threadList[i] = new Thread(new RealTimeQueryWorker(databaseConnector, options, statsCollector.getStats(i), queryGenerator, i));
+                    threadList[i] = new Thread(new RealTimeQueryWorker(databaseConnector, options,
+                            statsCollector.getStats(i), queryGenerator, i));
                 } else {
-                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options), options, tc, (FloatsDatasetProcessor) datasetProcessor);
+                    QueryGenerator queryGenerator = new FloatsQueryGenerator(QueryBuilder.createQueryBuilder(options),
+                            options, tc, (FloatsDatasetProcessor) datasetProcessor);
                     queryGenerator.incrementSeed(i);
                     statsCollector.setQuerySeed(queryGenerator.getCurrentSeed());
                     List<Query> workerQueries = queryGenerator.generateQueries(options.query.count);
-                    threadList[i] = new Thread(new PreGeneratedQueryWorker(databaseConnector, options, statsCollector.getStats(i), i, workerQueries));
+                    threadList[i] = new Thread(new PreGeneratedQueryWorker(databaseConnector, options,
+                            statsCollector.getStats(i), i, workerQueries));
                 }
             }
 
@@ -368,7 +391,7 @@ public class BenchmarkClient {
         logger.debug("Sending collected statistics to orchestrator");
 
         try {
-            this.orchestratorSocket.setTcpNoDelay(true); //better for bigger writes
+            this.orchestratorSocket.setTcpNoDelay(true); // better for bigger writes
             this.objOut.writeObject(this.statsCollector);
             this.objOut.flush();
 
@@ -379,7 +402,7 @@ public class BenchmarkClient {
         }
 
         try {
-            // Thread.sleep(10000); 
+            // Thread.sleep(10000);
 
             this.orchestratorSocket.shutdownOutput();
 

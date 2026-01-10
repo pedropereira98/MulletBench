@@ -2,7 +2,6 @@ package pt.haslab.mulletbench.workers;
 
 import java.io.FileNotFoundException;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
@@ -13,6 +12,7 @@ import pt.haslab.mulletbench.TimeProvider;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
 import pt.haslab.mulletbench.queries.Query;
+import pt.haslab.mulletbench.queries.queryResult.QueryResult;
 import pt.haslab.mulletbench.stats.Stats;
 import pt.haslab.mulletbench.utils.QueryDumper;
 
@@ -39,7 +39,7 @@ public abstract class QueryWorker extends Worker {
         logger.info("Starting query");
         logger.debug(query);
         try {
-            List<String> results = connector.query(query.queryString());
+            QueryResult results = connector.query(query.queryString());
             long after = TimeProvider.getNanoTime();
             // TODO check results?
 

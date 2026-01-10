@@ -1,6 +1,5 @@
 package pt.haslab.mulletbench.database.InfluxDB;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -16,15 +15,14 @@ import com.influxdb.client.WriteApiBlocking;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.WriteParameters;
 import com.influxdb.exceptions.InfluxException;
-import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 
 import okhttp3.OkHttpClient;
 import pt.haslab.mulletbench.database.DatabaseConnector;
 import pt.haslab.mulletbench.database.FailedQueryException;
+import pt.haslab.mulletbench.queries.queryResult.InfluxQueryResult;
 import pt.haslab.mulletbench.utils.InfluxDBOptions;
 import pt.haslab.mulletbench.utils.InsertionOptions;
-
 
 public class InfluxDBConnector implements DatabaseConnector {
 
@@ -37,80 +35,66 @@ public class InfluxDBConnector implements DatabaseConnector {
 
     private static final Logger logger = LogManager.getLogger();
 
-    public boolean write(List<String> records, String deviceId){
-        //TODO exceptions
-        if(records.isEmpty()){
+    public boolean write(List<String> records, String deviceId) {
+        // TODO exceptions
+        if (records.isEmpty()) {
             logger.error("Measurement list length 0");
             return false;
         }
 
         long start = System.nanoTime();
         List<?> parsedRecords;
-        parsedRecords = records.stream().map(line -> measurementFactory.getMeasurement(line, deviceId)).collect(Collectors.toList());
+        parsedRecords = records.stream().map(line -> measurementFactory.getMeasurement(line, deviceId))
+                .collect(Collectors.toList());
 
         long end = System.nanoTime();
-        logger.debug("Time to parse: " + (end - start)/1000000);
+        logger.debug("Time to parse: " + (end - start) / 1000000);
 
-        try{
+        try {
             writeAPIBlocking.writeMeasurements(parsedRecords, writeParameters);
-        } catch (InfluxException e){
+        } catch (InfluxException e) {
             logger.error("Error inserting measurements", e);
             return false;
         }
         return true;
     }
 
-    public List<String> query(String query) throws FailedQueryException {
-        try{
+    public InfluxQueryResult query(String query) throws FailedQueryException {
+        try {
             List<FluxTable> results = queryAPI.query(query);
 
-            List<String> resultStrings = new LinkedList<>();
-            for(FluxTable fluxTable: results){
-                List<FluxRecord> records = fluxTable.getRecords();
-                for (final FluxRecord fluxRecord: records){
-                    logger.trace(fluxRecord.getTime() + ": " + fluxRecord.getValueByKey("_value"));
-                    StringBuilder sb = new StringBuilder();
-                    for (String key : fluxRecord.getValues().keySet()) {
-                        sb.append(key).append("=").append(fluxRecord.getValueByKey(key)).append(" ");
-                    }
-                    resultStrings.add(sb.toString().trim());
-                }
-            }
-
-            return resultStrings;
-        } catch (Exception e){
+            return new InfluxQueryResult(results);
+        } catch (Exception e) {
             logger.error("Exception while querying" + e.getMessage());
             throw new FailedQueryException(e.getMessage());
         }
     }
 
-    public void close(){
+    public void close() {
         influxDBClient.close();
     }
 
-
-    //TODO maybe builder pattern for setting parameters
-    public InfluxDBConnector(String serverURL, char[] token, String orgID, String bucket, int writeTimeout, int readTimeout, boolean gzip, String dataset) throws ClassNotFoundException {
+    // TODO maybe builder pattern for setting parameters
+    public InfluxDBConnector(String serverURL, char[] token, String orgID, String bucket, int writeTimeout,
+            int readTimeout, boolean gzip, String dataset) throws ClassNotFoundException {
 
         this.writeParameters = new WriteParameters(bucket, orgID, WritePrecision.NS);
 
-
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-            .writeTimeout(writeTimeout, TimeUnit.SECONDS)
-            .readTimeout(readTimeout, TimeUnit.SECONDS);
+                .writeTimeout(writeTimeout, TimeUnit.SECONDS)
+                .readTimeout(readTimeout, TimeUnit.SECONDS);
 
         InfluxDBClientOptions options = InfluxDBClientOptions.builder()
-            .url(serverURL)
-            .authenticateToken(token)
-            .org(orgID)
-            .okHttpClient(builder)
-            .build();
+                .url(serverURL)
+                .authenticateToken(token)
+                .org(orgID)
+                .okHttpClient(builder)
+                .build();
 
         this.influxDBClient = InfluxDBClientFactory.create(options);
-        if(gzip){
+        if (gzip) {
             this.influxDBClient.enableGzip();
-        }
-        else{
+        } else {
             this.influxDBClient.disableGzip();
         }
         logger.info(this.influxDBClient.isGzipEnabled() ? "Gzip enabled" : "Gzip disabled");
@@ -119,16 +103,18 @@ public class InfluxDBConnector implements DatabaseConnector {
 
         this.writeAPIBlocking = influxDBClient.getWriteApiBlocking();
 
-//       get class for measurements from dataset name
-        try{
+        // get class for measurements from dataset name
+        try {
             this.measurementFactory = MeasurementFactory.getInstance(dataset);
-        } catch (NoSuchMethodException e){
+        } catch (NoSuchMethodException e) {
             logger.error("Invalid measurement class", e);
         }
 
     }
 
-    public InfluxDBConnector(InfluxDBOptions options, InsertionOptions insertionOptions, String dataset) throws ClassNotFoundException {
-        this(options.serverURL, options.token.toCharArray(), options.orgID, options.bucket, options.writeTimeout, options.readTimeout, options.gzip, dataset);
+    public InfluxDBConnector(InfluxDBOptions options, InsertionOptions insertionOptions, String dataset)
+            throws ClassNotFoundException {
+        this(options.serverURL, options.token.toCharArray(), options.orgID, options.bucket, options.writeTimeout,
+                options.readTimeout, options.gzip, dataset);
     }
 }
