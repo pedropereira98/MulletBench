@@ -120,7 +120,7 @@ def run_determination_test_cpu(args, loaded_config: dict, server: dict, referenc
     
         return best_run, best_io
     
-    return cpu_value, io_limits
+    return best_run, io_limits
 
 
 def run_determination_test_disk_io(args, loaded_config: dict, server: dict, reference_results: dict, io_limits: dict) -> tuple[dict, bool]:
