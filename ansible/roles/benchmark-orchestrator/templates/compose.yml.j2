@@ -7,3 +7,8 @@ services:
       - ./results:/home/app/results:rw
     ports:
       - "27205:27205"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"   # number of files or file count
+        max-size: "10m" # file size
