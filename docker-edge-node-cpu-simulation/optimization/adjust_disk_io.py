@@ -5,6 +5,15 @@ from optimization.compare import compare_results
 import time
 
 def multiply_disk_io(base_io_limits: dict, multiplier: float) -> dict:
+    """ Apply disk multiplier to base Disk I/O limits
+
+    Args:
+        base_io_limits (dict): maximum Disk I/O limits
+        multiplier (float): Disk I/O multiplier to use
+
+    Returns:
+        dict: scaled Disk I/O limits
+    """
     
     new_limits: dict = {}
     

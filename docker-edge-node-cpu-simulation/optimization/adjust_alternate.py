@@ -74,7 +74,7 @@ def append_alternate_history(
 
 def calculate_next_value_alternate(
         current_cpu_value: float, 
-        current_io_multiplier: dict[str, float],
+        current_io_multiplier: float,
         current_bias: int,
         adjust_cpu: bool,
         reference_results: dict,
@@ -93,8 +93,6 @@ def calculate_next_value_alternate(
     Returns:
         tuple[float, dict[str, float], float]: The next CPU and Disk I/O values to use for the next test run, along with the current bias for axis reverse caclulation
     """
-    divisor = 1
-
     diff = min(max(compare_results(reference_results, adjusted_results, config_type), -0.8), 0.8)
 
     axis_value = calculate_axis(current_cpu_value, current_io_multiplier)

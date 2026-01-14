@@ -13,7 +13,7 @@ class Config:
         self.STOP_THRESHOLD = 0.02
         self.MAX_DECIMAL_PLACES = 5
         self.INITIAL_CPU_VALUE = 1.0
-        self.INITIAL_DISK_MULTIPLIER = 0.5
+        self.INITIAL_DISK_MULTIPLIER = 1.0
         self.INITIAL_DISK_IO = {}
         self.MAX_ADJUST_CPU = 0.5
         self.MIN_CPU_VALUE = 0.15

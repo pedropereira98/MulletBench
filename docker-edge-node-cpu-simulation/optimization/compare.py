@@ -27,6 +27,15 @@ def compare(reference_results: list[str], adjusted_results: list[str], key: str)
     return (adjusted_results[key][0] / reference_results[key][0]) - 1
 
 def weighted_diff(diffs: list[float], weights: list[float]) -> float:
+    """ Calculate a weighted average of differences.
+
+    Args:
+        diffs (list[float]): diff values to average
+        weights (list[float]): weights for each diff
+
+    Returns:
+        float: weighted average of the differences
+    """
     total_weight = sum(weights)
     if total_weight == 0:
         return 0.0
@@ -125,7 +134,6 @@ def compare_results(reference_results: list[str], adjusted_results: list[str], c
             diff_insert_latency = compare(adj_edge_stats, ref_edge_stats, INSERT_LATENCY)
             diff_insert = (diff_insert_rate * 0.7 + diff_insert_latency * 0.3)
 
-            # Query diff
             diff_query_latency = compare(
                 adj_query_stats[QUERY_LATENCY_BREAKDOWN],
                 ref_query_stats[QUERY_LATENCY_BREAKDOWN],
