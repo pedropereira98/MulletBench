@@ -11,8 +11,8 @@ def parse_arguments():
     argParser.add_argument("--initial-disk-multiplier", help="Value to use for disk I/O multiplier on the first run")
     argParser.add_argument("-r", "--max-runs", help="Maximum number of runs that will take place if threshold value is not hit")
     argParser.add_argument("--cpu-only", action='store_true',  help="Only adjust CPU limits, do not adjust Disk I/O limits")
-    argParser.add_argument("--alternate", action='store_true',  help="Alternate between adjusting CPU and Disk I/O limits")
     argParser.add_argument("--disk-only", action='store_true', help="Only adjust Disk I/O limits, do not adjust CPU limits")
+    argParser.add_argument("--sequential", action='store_true',  help="Adjust CPU and Disk I/O limits sequentially")
     argParser.add_argument("--debug", action='store_true', help="Print debug information")
     
     return argParser.parse_args()

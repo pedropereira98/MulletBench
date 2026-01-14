@@ -1,3 +1,4 @@
+import sys
 from config import config
 from state import state
 from cli import parse_arguments
@@ -65,23 +66,25 @@ def main():
 
         for key, value in io_limits.items():
             server[f'limited_resources_{key}'] = value
-
+    
     # print(server)
     best_cpu, best_io = None, None
 
+    alternate = False
     if args.cpu_only:
         best_cpu, _ = run_determination_test_cpu(args, loaded_config, server, reference_results, io_limits)
     elif args.disk_only:
         best_io, _ =run_determination_test_disk_io(args, loaded_config, server, reference_results, io_limits)
-    elif args.alternate:
-        best_cpu, best_io = run_determination_test_alternate(args, loaded_config, server, reference_results, io_limits)
-    else:
+    elif args.sequential:
         config.STOP_THRESHOLD = 0.05
         best_cpu, best_io = run_determination_test_cpu(args, loaded_config, server, reference_results, io_limits, True)
+    else:
+        alternate = True
+        best_cpu, best_io = run_determination_test_alternate(args, loaded_config, server, reference_results, io_limits)
 
     cpu_result = "Not Adjusted"
     io_result = "Not adjusted"
-    if args.alternate:
+    if alternate:
         cpu_result = best_cpu
         io_result = best_io
 
