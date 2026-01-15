@@ -256,8 +256,4 @@ public abstract class QueryGenerator {
     public List<Query> generateQueries(int count) {
         return IntStream.range(0, count).mapToObj(__ -> generateQuery()).collect(Collectors.toList());
     }
-
-    public long getSeed() {
-        return this.querySeed;
-    }
 }
