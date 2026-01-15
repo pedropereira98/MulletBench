@@ -31,8 +31,8 @@ def axis_to_values(axis_value: float, old_values: tuple[float, float] | None = N
     value = math.sqrt(axis_value)
     
     if old_values is None:
-        value_cpu = round(value * (1 - bias * 0.05), config.MAX_DECIMAL_PLACES)
-        value_disk = round(value * (1 + bias * 0.05), config.MAX_DECIMAL_PLACES)
+        value_cpu = round(value * (1 - bias * 0.1), config.MAX_DECIMAL_PLACES)
+        value_disk = round(value * (1 + bias * 0.1), config.MAX_DECIMAL_PLACES)
         return (value_cpu, value_disk)
 
     old_cpu, old_disk = old_values
@@ -40,8 +40,8 @@ def axis_to_values(axis_value: float, old_values: tuple[float, float] | None = N
     cpu_diff = value - old_cpu
     disk_diff = value - old_disk
 
-    value_cpu = round(old_cpu + cpu_diff * (1 - bias * 0.05), config.MAX_DECIMAL_PLACES)
-    value_disk = round(old_disk + disk_diff * (1 + bias * 0.05), config.MAX_DECIMAL_PLACES)
+    value_cpu = round(old_cpu + cpu_diff * (1 - bias * 0.1), config.MAX_DECIMAL_PLACES)
+    value_disk = round(old_disk + disk_diff * (1 + bias * 0.1), config.MAX_DECIMAL_PLACES)
 
     return (value_cpu, value_disk)
 
