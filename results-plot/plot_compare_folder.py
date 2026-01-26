@@ -30,8 +30,8 @@ os.makedirs(images_folder+metrics_folder, exist_ok=True)
 os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-# FORMAT="pdf"
-FORMAT="png"
+# FORMAT="png"
+FORMAT="pdf"
 
 # CUT = True
 CUT = True
@@ -43,7 +43,7 @@ axis2_max = 18000
 finishes = {}
 current_stage = 0 #works if 
 
-PLOT_INDIVIDUAL_CLIENTS = True
+PLOT_INDIVIDUAL_CLIENTS = False
 PLOT_AGGREGATE_CLIENTS = True
 PLOT_DB_MONITORING = True
 
@@ -188,8 +188,11 @@ def monitor_df_from_path(file_path: str, name: str = ""):
     global finishes
 
     #reading data with format time (datetime), lo-in (float), eth0-in (float), lo-out (float),eth0-out (float), RAM (float), cpu-system (float), cpu-user (float), io-read (float), io-write (float)
-    monitor_df = pd.read_csv(file_path)
-    
+    try:
+        monitor_df = pd.read_csv(file_path)
+    except Exception as e:
+        print(f"Error reading {file_path}: {e}")
+        exit(1)
 
     interface_columns = get_interface_columns(monitor_df)
     print(interface_columns)
@@ -230,7 +233,10 @@ def plot_stage_lines():
         # Add text labels
         # Text for the last stage (Test Finish)
         if i == len(stage_stats)-1:
-            plt.text(stats['mean']/scale, 1.02, 'Test finish', ha='center', transform=ax.get_xaxis_transform())
+            x_pos = stats['mean']/scale
+            if x_pos > ax.get_xlim()[1]:
+                x_pos = stats['min'] / scale
+            plt.text(x_pos, 1.02, 'Test finish', ha='center', transform=ax.get_xaxis_transform())
         
         text = ""
         if i == 0: text = "Pre-population"
@@ -277,22 +283,25 @@ def plot_monitoring_compare(file_paths: list[str]):
         monitor_dfs_aggregated[id] = pd.concat(monitor_list)
         monitor_dfs_aggregated[id].index = pd.to_timedelta(monitor_dfs_aggregated[id]['time'], unit='ns')
         monitor_dfs_aggregated[id].sort_index(inplace=True)
-        monitor_dfs_aggregated[id] = monitor_dfs_aggregated[id].resample("20ns").mean()
+        monitor_dfs_aggregated[id] = monitor_dfs_aggregated[id].resample("15ns").mean()
         
-    monitor_dfs_aggregated = dict(sorted(monitor_dfs_aggregated.items(), key=lambda x: x[0] == "Control" or x[0] == "Reference", reverse=True))
+    monitor_dfs_aggregated = dict(sorted(monitor_dfs_aggregated.items(), key=lambda x: (x[0].lower() not in ["control", "reference"], x[0].lower())))
     
     
     # plot cpu usage
     fig, ax = plt.subplots(figsize=(15, 10))
-    line_styles = ['-', '--', '-.', ':', (5, (10, 3)), (0, (3, 10, 1, 10)), (0, (3, 10, 1, 10, 1, 10))]
+    # line_styles = ['-', '--', '-.', ':', (5, (10, 3)), (0, (3, 10, 1, 10)), (0, (3, 10, 1, 10, 1, 10))]
+    line_styles = ['-' for _ in range(7)]
     
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['cpu-total'], label=id, linestyle=line_styles_copy.pop(0))
         
-    ax.set_title("Total CPU usage")
+    # ax.set_title("Total CPU usage")
     ax.set_ylabel("% up to 100 * number of cores")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
 
@@ -306,9 +315,11 @@ def plot_monitoring_compare(file_paths: list[str]):
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['RAM'], label=id, linestyle=line_styles_copy.pop(0))
-    ax.set_title("RAM usage")
+    # ax.set_title("RAM usage")
     ax.set_ylabel("RAM (MB)")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -326,9 +337,11 @@ def plot_monitoring_compare(file_paths: list[str]):
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['eth0-in'], label=id, linestyle=line_styles_copy.pop(0))
-    ax.set_title("Average eth0-in")
+    # ax.set_title("Average eth0-in")
     ax.set_ylabel("Throughput (MB/s)")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -340,9 +353,11 @@ def plot_monitoring_compare(file_paths: list[str]):
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['eth0-out'], label=id, linestyle=line_styles_copy.pop(0))
-    ax.set_title("Average eth0-out")
+    # ax.set_title("Average eth0-out")
     ax.set_ylabel("Throughput (MB/s)")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -356,9 +371,11 @@ def plot_monitoring_compare(file_paths: list[str]):
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['io-read'], label=id, linestyle=line_styles_copy.pop(0))
-    ax.set_title("Average io-read")
+    # ax.set_title("Average io-read")
     ax.set_ylabel("Throughput (MB/s)")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -370,9 +387,11 @@ def plot_monitoring_compare(file_paths: list[str]):
     line_styles_copy = line_styles.copy()
     for id, monitor_df in monitor_dfs_aggregated.items():
         ax.plot(monitor_df['io-write'], label=id, linestyle=line_styles_copy.pop(0))
-    ax.set_title("Average io-write")
+    # ax.set_title("Average io-write")
     ax.set_ylabel("Throughput (MB/s)")
     ax.set_xlabel("Elapsed time (s)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.2)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -380,29 +399,8 @@ def plot_monitoring_compare(file_paths: list[str]):
     plot_stage_lines()
     save(data_folder + "monitor-aggregate", monitoring_folder, "-io-write")
 
-
-import matplotlib.pyplot as plt
-
 def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None = None, coarse_aggregation: bool = False):
-    
-    # fig, ax = plt.subplots(figsize=(15, 10))
-    
-    # # Plot scatter latency for inserts
-    # for label, df in client_dfs.items():
-    #     query_groups = df.groupby('type')
-    #     for name, group in query_groups:
-    #         color = '#d62728' if 'FAILED' in name else None
-    #         sc = ax.scatter(seconds_millis(group.index), group.latency, c=color, label=f"{label} {name}", alpha=0.8, s=4)
-    
-    # ax.set_title("Insert Latency Comparison")
-    # ax.set_xlabel("Elapsed time (s)")
-    # ax.set_ylabel("Latency (ms)")
-    # ax.legend(loc='upper right')
-    # ax.ticklabel_format(useOffset=False)
-    
-    # plt.tight_layout()
-    # save(file_path, metrics_folder, "-insert-latency-comparison")
-    
+
     line_styles = ['-', '--', '-.', ':', (5, (10, 3)), (0, (3, 10, 1, 10)), (0, (3, 10, 1, 10, 1, 10))]
     # Plot throughput for inserts
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -411,7 +409,7 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     for label, df in client_dfs.items():
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
-            resample_time = 80.0
+            resample_time = 40.0
             insert_amount = query_groups.get_group("INSERT")['amount']
             insert_throughput = insert_amount.resample(f"{resample_time}s").sum().map(lambda el: el/resample_time).map(lambda el: (el/runs_per_client[label]) if runs_per_client else el)
             insert_throughput.index = insert_throughput.index.map(lambda el: seconds_millis(el) / 60)
@@ -420,6 +418,8 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     # ax.set_title("Insertion Throughput Comparison")
     ax.set_xlabel("Elapsed time (m)")
     ax.set_ylabel("Throughput (rows/second)")
+    ax.set_xlim(left= 0, right=ax.get_xlim()[1])
+    ax.set_ylim(top=ax.get_ylim()[1]*1.5)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False, style='plain')
     
@@ -435,13 +435,15 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
         query_groups = df.groupby('type')
         if "INSERT" in query_groups.groups:
             insert_latency =  query_groups.get_group("INSERT")['latency']
-            latency_mean = insert_latency.resample("50s").mean()
+            latency_mean = insert_latency.resample("30s").mean()
             latency_mean.index = latency_mean.index.map(lambda el : seconds_millis(el) / 60)
             ax.plot(latency_mean, label=label, linestyle=line_styles_copy.pop(0))
             
-    ax.set_title("Insertion Latency Trend")
+    # ax.set_title("Insertion Latency Trend")
     ax.set_xlabel("Elapsed time (m)")
     ax.set_ylabel("Latency (ms)")
+    ax.set_xlim(left= 0)
+    ax.set_ylim(top=ax.get_ylim()[1]*1.5)
     ax.legend(loc='upper right')
     ax.ticklabel_format(useOffset=False)
     
@@ -449,50 +451,425 @@ def plot_insert_client(file_path: str, client_dfs, runs_per_client: dict | None 
     plt.tight_layout()
     save(file_path, metrics_folder, "-insert-latency-trend")
 
-def plot_query_client(file_path: str, query_groups_per_run):
-    
-    for t in ["AGGREGATION", "DOWNSAMPLING", "OUTLIER_FILTER"]:
-        fig, ax = plt.subplots(figsize=(8, 5))
 
-        style = ['-', '--', '-.', ':', (5, (10, 3)), (0, (3, 10, 1, 10)), (0, (3, 10, 1, 10, 1, 10)), (0, (3, 5, 1, 5, 1, 5))]
-        for id, query_groups in query_groups_per_run.items():
-            
+def collect_latency_records(query_groups_per_run, query_types):
+    records = []
+
+    for t in query_types:
+        for run_id, query_groups in query_groups_per_run.items():
             for name, group in query_groups:
-                
-                if t not in name:
+                if t not in name or "FAILED" in name:
                     continue
+
+                resample_interval = 20 if len(query_groups_per_run) > 3 else 10
+
+                numerics = group.select_dtypes("number").resample(f"{resample_interval}s").mean()
+                strings = group.select_dtypes("object").resample(f"{resample_interval}s").first()
+                downsampled = pd.concat([numerics, strings], axis=1)
+                downsampled.interpolate(method="linear", inplace=True)
                 
-                if 'FAILED' in name:
-                    color = '#d62728'
-                    name = name.replace(t, "")
+                records.append(pd.DataFrame({
+                    "type": t,
+                    "run": run_id,
+                    "latency": downsampled["latency"].values,
+                    "time": seconds_millis(downsampled.index)
+                }))
+
+    return pd.concat(records, ignore_index=True)
+
+def collect_volume_records(query_groups_per_run, query_types):
+    records = []
+
+    for t in query_types:
+        for run_id, query_groups in query_groups_per_run.items():
+            for name, group in query_groups:
+                if t not in name or "FAILED" in name:
                     continue
-                else:
-                    name = ""
-                    color = None
-                
-                # Downsample the data using mean
-                numerics = group.select_dtypes("number").resample("10s").mean()
-                strings = group.select_dtypes("object").resample("10s").first()
-                
-                downsampled_group = pd.concat([numerics, strings], axis=1)
 
-                # interpolate to avoid gaps
-                downsampled_group.interpolate(method='linear', inplace=True)
+                records.append(pd.DataFrame({
+                    "type": t,
+                    "run": run_id,
+                    "volume": group["amount"].values,
+                    "time": seconds_millis(group.index)
+                }))
 
-                # print(f"Average latency for {name}{id} {t}: {downsampled_group['latency'].mean()}")
-                # Plot the downsampled data
-                ax.plot(seconds_millis(downsampled_group.index), downsampled_group.latency, c=color, label=f"{name }{id}", alpha=0.8, linewidth=1, linestyle=style.pop(0))
-                # ax.scatter(seconds_millis(group.index), group.latency,c=color, label=f"{name }{id}", alpha = 0.8, s=4)
-                # ax.plot(seconds_millis(group.index), group.latency, c=color, label=f"{name }{id}", alpha=0.8, linewidth=1)
-                ax.legend(loc="upper right", fontsize='large', labelspacing=0.1, fancybox=True, framealpha=0.5)
+    return pd.concat(records, ignore_index=True)
+
+def collect_failed_query_counts(query_groups_per_run, query_types):
+    records = []
+
+    for run_id, query_groups in query_groups_per_run.items():
+        for name, group in query_groups:
+            for t in query_types:
+                if f"FAILED_{t}" in name:
+                    records.append({
+                        "run": run_id,
+                        "type": t,
+                        "count": len(group)
+                    })
+
+    return pd.DataFrame(records)
+
+
+def plot_query_line(latency_df, query_type, run_colors, file_path, suffix):
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    subset = latency_df if query_type is None else latency_df[latency_df["type"] == query_type]
+
+    for run, color in run_colors.items():
+        run_df = subset[subset["run"] == run]
+        if run_df.empty:
+            continue
+
+        ax.plot(
+            run_df["time"],
+            run_df["latency"],
+            label=f"{run}",
+            color=color,
+            linewidth=1,
+            alpha=0.85
+        )
+
+    ax.set_xlabel("Elapsed time (s)")
+    ax.set_ylabel("Latency (ms)")
+    ax.legend(fontsize="large", fancybox=True, framealpha=0.5)
+    ax.set_xlim(left=0)
+    ax.set_ylim(top=ax.get_ylim()[1] * 1.5)
+
+    plt.tight_layout()
+    save(file_path, metrics_folder, suffix)
+
+def plot_query_bar_latency(latency_df, query_types, runs, run_colors, file_path, suffix):
+    mean_df = latency_df.groupby(["type", "run"])["latency"].mean().reset_index()
+
+    x = np.arange(len(query_types))
+
+    group_width = 0.6
+    max_bar_width = 0.25
+    bar_width = min(max_bar_width, group_width / len(runs))
+    offset = (len(runs) - 1) * bar_width / 2
+
+    plt.figure(figsize=(10, 6))
+
+    for i, run in enumerate(runs):
+        values = [
+            mean_df[(mean_df["type"] == t) & (mean_df["run"] == run)]["latency"].values[0]
+            if not mean_df[(mean_df["type"] == t) & (mean_df["run"] == run)].empty else 0
+            for t in query_types
+        ]
+
+        plt.bar(
+            x + i * bar_width - offset,
+            values,
+            width=bar_width,
+            color=run_colors[run],
+            label=f"{run}"
+        )
+
+    plt.xticks(x, query_types, fontsize=8)
+    xlim = plt.xlim()
+    xlim_range = xlim[1] - xlim[0]
+    mid = (xlim[1] + xlim[0]) / 2
+    if bar_width > 0.4 * xlim_range:
+        plt.xlim((mid - xlim_range, mid + xlim_range))
+    plt.xlabel("Query type", fontsize=9)
+    plt.ylabel("Average latency (ms)", fontsize=9)
+    plt.legend(fontsize="large", fancybox=True, framealpha=0.5)
+    plt.tight_layout()
+
+    save(file_path, metrics_folder, suffix)
     
+def plot_query_bar_volume(volume_df, query_types, runs, run_colors, file_path, suffix):
+    mean_df = volume_df.groupby(["type", "run"])["volume"].mean().reset_index()
 
-        # plt.title("Latency per Query Types")
-        plt.ylabel("Latency (ms)")
-        plt.xlabel("Elapsed time (s)")
-        # plt.yscale('log')
-        plt.tight_layout()
-        save(file_path, metrics_folder, f"-{t.lower()}-query-latency")
+    x = np.arange(len(query_types))
+
+    group_width = 0.6
+    max_bar_width = 0.25
+    bar_width = min(max_bar_width, group_width / len(runs))
+    offset = (len(runs) - 1) * bar_width / 2
+
+    plt.figure(figsize=(10, 6))
+
+    for i, run in enumerate(runs):
+        values = [
+            mean_df[(mean_df["type"] == t) & (mean_df["run"] == run)]["volume"].values[0]
+            if not mean_df[(mean_df["type"] == t) & (mean_df["run"] == run)].empty else 0
+            for t in query_types
+        ]
+
+        plt.bar(
+            x + i * bar_width - offset,
+            values,
+            width=bar_width,
+            color=run_colors[run],
+            label=f"{run}"
+        )
+
+    plt.xticks(x, query_types, fontsize=8)
+    xlim = plt.xlim()
+    xlim_range = xlim[1] - xlim[0]
+    mid = (xlim[1] + xlim[0]) / 2
+    if bar_width > 0.4 * xlim_range:
+        plt.xlim((mid - xlim_range, mid + xlim_range))
+    plt.xlabel("Query type", fontsize=9)
+    plt.ylabel("Average Volume (records/query)", fontsize=9)
+    plt.legend(fontsize="large", fancybox=True, framealpha=0.5, loc="upper right")
+    plt.tight_layout()
+
+    save(file_path, metrics_folder, suffix)
+
+def plot_failed_queries_bar(failed_df, query_types, runs, run_colors, file_path, suffix):
+
+    if failed_df.empty:
+        return
+
+    counts = (
+        failed_df
+        .groupby(["type", "run"])["count"]
+        .sum()
+        .reset_index()
+    )
+
+    x = np.arange(len(query_types))
+
+    group_width = 0.6
+    max_bar_width = 0.25
+    bar_width = min(max_bar_width, group_width / len(runs))
+    offset = (len(runs) - 1) * bar_width / 2
+
+    plt.figure(figsize=(10, 6))
+
+    for i, run in enumerate(runs):
+        values = [
+            counts[(counts["type"] == t) & (counts["run"] == run)]["count"].values[0]
+            if not counts[(counts["type"] == t) & (counts["run"] == run)].empty else 0
+            for t in query_types
+        ]
+
+        plt.bar(
+            x + i * bar_width - offset,
+            values,
+            width=bar_width,
+            color=run_colors[run],
+            label=f"{run}"
+        )
+
+    plt.xticks(x, query_types, fontsize=8)
+    plt.xlabel("Query type", fontsize=9)
+    plt.ylabel("Number of failed queries", fontsize=9)
+    plt.legend(fontsize="large", fancybox=True, framealpha=0.5)
+    plt.tight_layout()
+
+    save(file_path, metrics_folder, suffix)
+
+def plot_query_box_latency(latency_df, query_types, runs, run_colors, file_path, suffix):
+    positions, box_data, colors = [], [], []
+    pos, gap = 0, 0.5
+
+    for t in query_types:
+        for run in runs:
+            values = latency_df[
+                (latency_df["type"] == t) &
+                (latency_df["run"] == run)
+            ]["latency"].values
+
+            if len(values) == 0:
+                continue
+
+            box_data.append(values)
+            positions.append(pos)
+            colors.append(run_colors[run])
+            pos += 1
+
+        pos += gap
+
+    plt.figure(figsize=(10, 6))
+    bp = plt.boxplot(box_data, positions=positions, widths=0.6,
+                     patch_artist=True, showfliers=False)
+
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
+
+    for median in bp["medians"]:
+        median.set_color("black")
+
+    centers, start = [], 0
+    for _ in query_types:
+        centers.append(start + (len(runs) - 1) / 2)
+        start += len(runs) + gap
+        
+    xlim = plt.xlim()
+    xlim_range = xlim[1] - xlim[0]
+    mid = (xlim[1] + xlim[0]) / 2
+    if 0.6 > 0.2 * xlim_range:
+        plt.xlim((mid - xlim_range, mid + xlim_range))
+
+    plt.xticks(centers, query_types, fontsize=8)
+    plt.xlabel("Query type", fontsize=9)
+    plt.ylabel("Latency (ms)", fontsize=9)
+
+    handles = [plt.Line2D([0], [0], color=run_colors[r], lw=4) for r in runs]
+    plt.legend(handles, runs, fontsize="large", fancybox=True, framealpha=0.5)
+
+    plt.tight_layout()
+    save(file_path, metrics_folder, suffix)
+    
+def plot_query_box_volume(volume_df, query_types, runs, run_colors, file_path, suffix):
+    positions, box_data, colors = [], [], []
+    pos, gap = 0, 1
+
+    for t in query_types:
+        for run in runs:
+            values = volume_df[
+                (volume_df["type"] == t) &
+                (volume_df["run"] == run)
+            ]["volume"].values
+            
+            if len(values) == 0:
+                continue
+
+            box_data.append(values)
+            positions.append(pos)
+            colors.append(run_colors[run])
+            pos += 1
+
+        pos += gap
+
+    plt.figure(figsize=(10, 6))
+    bp = plt.boxplot(box_data, positions=positions, widths=0.6,
+                     patch_artist=True, showfliers=False)
+
+    for patch, color in zip(bp["boxes"], colors):
+        patch.set_facecolor(color)
+
+    for median in bp["medians"]:
+        median.set_color("black")
+
+    centers, start = [], 0
+    for _ in query_types:
+        centers.append(start + (len(runs) - 1) / 2)
+        start += len(runs) + gap
+        
+    xlim = plt.xlim()
+    xlim_range = xlim[1] - xlim[0]
+    mid = (xlim[1] + xlim[0]) / 2
+    if 0.6 > 0.2 * xlim_range:
+        plt.xlim((mid - xlim_range, mid + xlim_range))
+
+    plt.xticks(centers, query_types, fontsize=8)
+    plt.xlabel("Query type", fontsize=9)
+    plt.ylabel("Volume (records/query)", fontsize=9)
+
+    handles = [plt.Line2D([0], [0], color=run_colors[r], lw=4) for r in runs]
+    plt.legend(handles, runs, fontsize="large", fancybox=True, framealpha=0.5)
+
+    plt.tight_layout()
+    save(file_path, metrics_folder, suffix)
+    
+def compute_avg_latency_per_run(latency_df, interval="15s"):
+    avg_records = []
+
+    for run in latency_df["run"].unique():
+        run_df = latency_df[latency_df["run"] == run].copy()
+
+        # Convert seconds back to TimedeltaIndex
+        run_df["time_td"] = pd.to_timedelta(run_df["time"], unit="s")
+        run_df = run_df.set_index("time_td")
+
+        avg = (
+            run_df["latency"]
+            .resample(interval)
+            .mean()
+            .dropna()
+        )
+
+        avg_records.append(pd.DataFrame({
+            "run": run,
+            "time": seconds_millis(avg.index),
+            "latency": avg.values
+        }))
+
+    return pd.concat(avg_records, ignore_index=True)
+    
+def plot_avg_latency_per_run(avg_latency_df, run_colors, file_path, suffix):
+        
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    for run, color in run_colors.items():
+        run_df = avg_latency_df[avg_latency_df["run"] == run]
+        if run_df.empty:
+            continue
+
+        ax.plot(
+            run_df["time"],
+            run_df["latency"],
+            label=f"{run}",
+            color=color,
+            linewidth=1.2,
+            alpha=0.9
+        )
+
+    ax.set_xlabel("Elapsed time (s)")
+    ax.set_ylabel("Average query latency (ms)")
+    ax.set_xlim(left=0)
+    ax.set_ylim(top=ax.get_ylim()[1] * 1.5)
+    ax.legend(fontsize="large", fancybox=True, framealpha=0.5)
+
+    plt.tight_layout()
+    save(file_path, metrics_folder, suffix)
+
+def plot_query_client(file_path: str, query_groups_per_run):
+
+    query_types = ["AGGREGATION", "DOWNSAMPLING", "OUTLIER_FILTER"]
+
+    latency_df = collect_latency_records(query_groups_per_run, query_types)
+    volume_df = collect_volume_records(query_groups_per_run, query_types)
+
+    if latency_df.empty:
+        return
+
+    runs = sorted(latency_df["run"].unique(), key=lambda x: (x.lower() not in ["control", "reference"], x.lower()))
+
+    cmap = plt.get_cmap("tab10")
+    run_colors = {
+        run: (*cmap(i % 10)[:3], cmap(i % 10)[3] * 0.85)
+        for i, run in enumerate(runs)
+    }
+
+    # ---- Per-query-type plots ----
+    for t in query_types:
+        if t not in latency_df["type"].unique():
+            continue
+
+        subset = latency_df[latency_df["type"] == t]
+        subset_v = volume_df[volume_df["type"] == t]
+
+        plot_query_line(subset, t, run_colors, file_path, f"-{t.lower()}-query-latency")
+        plot_query_bar_latency(subset, [t], runs, run_colors, file_path, f"-{t.lower()}-bar")
+        plot_query_bar_volume(subset_v, [t], runs, run_colors, file_path, f"-{t.lower()}-volume-bar")
+        plot_query_box_latency(subset, [t], runs, run_colors, file_path, f"-{t.lower()}-box")
+
+    plot_query_bar_latency(latency_df, query_types, runs, run_colors, file_path, "-query-latency-bar")
+    plot_query_bar_volume(volume_df, query_types, runs, run_colors, file_path, "-query-volume-bar")
+    plot_query_box_latency(latency_df, query_types, runs, run_colors, file_path, "-query-latency-box")
+    # plot_query_box_latency(latency_df[latency_df["type"] != "OUTLIER_FILTER"], ["AGGREGATION", "DOWNSAMPLING"], runs, run_colors, file_path, "-query-latency-box")
+    plot_query_box_volume(volume_df, query_types, runs, run_colors, file_path, "-query-volume-box")
+    
+    runs_2 = sorted(query_groups_per_run.keys())
+
+    failed_df = collect_failed_query_counts(query_groups_per_run, query_types)
+
+    plot_failed_queries_bar(failed_df, query_types, runs_2, run_colors, file_path, "-query-failed-bar")
+
+    avg_latency_df = compute_avg_latency_per_run(latency_df)
+
+    plot_avg_latency_per_run(
+        avg_latency_df,
+        run_colors,
+        file_path,
+        "-query-latency"
+    )
 
 def plot_benchmark_client(file_path: str):
     
@@ -527,8 +904,6 @@ def plot_benchmark_client(file_path: str):
             min_after = client_df['after'].min()
             client_df['after'] =  (client_df['after'] - min_after)
 
-            # print(f"Average latency for {file_path}: {client_df['latency'].mean()}")
-
             client_df.sort_values('after', inplace=True)
             client_df.set_index('after', inplace=True)
 
@@ -540,7 +915,7 @@ def plot_benchmark_client(file_path: str):
         query_groups[run] = client_df_per_run[run].groupby('type')          
         
     # sort the client dfs so that the default one is first
-    query_groups = dict(sorted(query_groups.items(), key=lambda x: x[0] == "Control" or x[0] == "Reference", reverse=True))
+    query_groups = dict(sorted(query_groups.items(), key=lambda x: (x[0].lower() not in ["control", "reference"], x[0].lower())))
 
     if any("INSERT" in query_groups[run].groups.keys() for run in query_groups):
         pass
@@ -551,7 +926,6 @@ def plot_aggregate_benchmark_clients(file_paths):
     clients = {}
     
     for sub_file_paths in file_paths:
-        # choosing the first run in each folder for comparison
         id = sub_file_paths.split("/")[-2]
         
         clients[id] = {}
@@ -638,7 +1012,7 @@ def plot_aggregate_benchmark_clients(file_paths):
             insert_clients_df = pd.concat([numerics, strings], axis=1)
             
         # set order of clients so it is default first and then rest
-        insert_clients_dfs_transformed = dict(sorted(insert_clients_dfs_transformed.items(), key=lambda x: x[0] == "Control" or x[0] == "Reference", reverse=True))
+        insert_clients_dfs_transformed = dict(sorted(insert_clients_dfs_transformed.items(), key=lambda x: (x[0].lower() not in ["control", "reference"], x[0].lower())))
 
         plot_insert_client(data_folder + "aggregate", insert_clients_dfs_transformed, runs_per_client, coarse_aggregation=True)
     
@@ -664,8 +1038,11 @@ def main():
     elif (not args.data_folder) ^ (not args.images_folder):
         raise ValueError("Both data_folder and images_folder arguments must be provided together.")
 
-    font_manager.fontManager.addfont('NewsGotT.ttf')
-    
+    try:
+        font_manager.fontManager.addfont('NewsGotT.ttf')
+    except Exception:
+        pass
+
     compute_stage_statistics()
     
     print(stage_stats)
@@ -674,7 +1051,7 @@ def main():
         
         print("Plotting individual clients")
         
-        clients = []
+        clients = set()
         
         for folder in os.listdir(data_folder):
             if "ignore" in folder:
@@ -686,7 +1063,7 @@ def main():
                         continue
                     path = data_folder + folder + "/" + run + "/data/"
                     for file_path in glob.glob("client*.csv", root_dir=path):
-                        clients.append(file_path)
+                        clients.add(file_path)
         
         for file_path in clients:
             plot_benchmark_client(file_path)

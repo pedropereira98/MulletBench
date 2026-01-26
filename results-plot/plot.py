@@ -9,8 +9,8 @@ import glob
 from datetime import datetime, timedelta
 
 epoch = datetime.utcfromtimestamp(0)
-images_folder = "results/Iotdb_Resource_Det_Insert_9_Workers/run-1/images/"
-data_folder = "results/Iotdb_Resource_Det_Insert_9_Workers/run-1/data/"
+images_folder = "results//run-1/images/"
+data_folder = "results//run-1/data/"
 metrics_folder = "metrics/"
 monitoring_folder = "monitoring/"
 os.makedirs(images_folder, exist_ok=True)
@@ -18,8 +18,8 @@ os.makedirs(images_folder+metrics_folder, exist_ok=True)
 os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
 DATE_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
-FORMAT="png"
-# FORMAT="pdf"
+# FORMAT="png"
+FORMAT="pdf"
 
 # CUT = True
 CUT = False
@@ -32,7 +32,7 @@ stages_min = [] #minimum timestamp for each stage
 stages_max = [] #max timestamp for each stage
 current_stage = 0 #works if 
 
-PLOT_INDIVIDUAL_CLIENTS = False
+PLOT_INDIVIDUAL_CLIENTS = True
 PLOT_AGGREGATE_CLIENTS = True
 PLOT_CLIENT_MONITORING = False
 PLOT_DB_MONITORING = True
@@ -451,26 +451,40 @@ def main():
     global data_folder, images_folder, stages_max, stages_min, current_stage
 
     font_manager.fontManager.addfont('NewsGotT.ttf')
+    
+    dbs = ["influx", "iotdb"]
+    folders = ["With Seed", "No Seed"]
+    
+    for db in dbs:
+        for folder in folders:
+            for run in range(1,4):
+                data_folder = f"results/Feature_Test/seed_test/{db}/{folder}/run-{run}/data/"
+                images_folder = f"results/Feature_Test/seed_test/{db}/{folder}/run-{run}/images/"
 
-    if PLOT_INDIVIDUAL_CLIENTS:
-        for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
-            plot_benchmark_client(data_folder + client)
+                os.makedirs(images_folder, exist_ok=True)
+                os.makedirs(images_folder+metrics_folder, exist_ok=True)
+                os.makedirs(images_folder+monitoring_folder, exist_ok=True)
 
-    if PLOT_AGGREGATE_CLIENTS:
-        clients = []
-        for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
-            clients.append(data_folder + client)
 
-        plot_aggregate_benchmark_clients(clients)
+                if PLOT_INDIVIDUAL_CLIENTS:
+                    for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+                        plot_benchmark_client(data_folder + client)
 
-    if PLOT_CLIENT_MONITORING or PLOT_DB_MONITORING:
-        for client_monitoring in glob.glob("monitor-client*.csv", root_dir=data_folder):
-            plot_monitoring(data_folder + client_monitoring)
+                if PLOT_AGGREGATE_CLIENTS:
+                    clients = []
+                    for client in glob.glob("client*.csv", root_dir=data_folder) + glob.glob("client[0-9][0-9].csv", root_dir=data_folder):
+                        clients.append(data_folder + client)
 
-    if PLOT_DB_MONITORING:
-        print("Plotting db monitoring")
-        for db_monitoring in glob.glob("monitor-cloud*.csv", root_dir=data_folder) + glob.glob("monitor-edge*.csv", root_dir=data_folder):
-            plot_monitoring(data_folder + db_monitoring)
+                    plot_aggregate_benchmark_clients(clients)
+
+                if PLOT_CLIENT_MONITORING or PLOT_DB_MONITORING:
+                    for client_monitoring in glob.glob("monitor-client*.csv", root_dir=data_folder):
+                        plot_monitoring(data_folder + client_monitoring)
+
+                if PLOT_DB_MONITORING:
+                    print("Plotting db monitoring")
+                    for db_monitoring in glob.glob("monitor-cloud*.csv", root_dir=data_folder) + glob.glob("monitor-edge*.csv", root_dir=data_folder):
+                        plot_monitoring(data_folder + db_monitoring)
 
 if __name__ == "__main__":
     main()
